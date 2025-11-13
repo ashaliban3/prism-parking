@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion"; // npm install framer-motion
 import { FaMapMarkerAlt, FaClock, FaCar } from "react-icons/fa"; // npm install react-icons
-
+import parkingImage from "../assets/image_nov12_757pm.jpg";
 export default function Home() {
   const [demoData, setDemoData] = useState(null);
 
@@ -59,11 +59,13 @@ export default function Home() {
           transition={{ delay: 0.3, duration: 0.8 }}
           className="flex-1 flex justify-center mt-12 md:mt-0"
         >
-          <img
-            src="https://illustrations.popsy.co/white/car-parking.svg"
-            alt="Parking illustration"
-            className="w-80 md:w-96 lg:w-[28rem]"
-          />
+        <img
+        src={parkingImage}
+        alt="Parking"
+        className="w-80 md:w-96 lg:w-[28rem] rounded-xl shadow-lg object-cover"
+      />
+
+
         </motion.div>
       </section>
 
