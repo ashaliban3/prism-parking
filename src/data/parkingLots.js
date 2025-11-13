@@ -1,4 +1,4 @@
-// Dummy parking lot data (simulated live data)
+// src/data/parkingLots.js
 
 const parkingLots = [
   {

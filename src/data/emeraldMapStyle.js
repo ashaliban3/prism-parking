@@ -1,7 +1,10 @@
+// src/data/emeraldMapStyle.js
+
 const emeraldMapStyle = [
   { elementType: "geometry", stylers: [{ color: "#0d1f18" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#0d1f18" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#99f6e4" }] },
+
   {
     featureType: "poi",
     elementType: "geometry",
