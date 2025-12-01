@@ -11,7 +11,7 @@ export default function GoogleMapComponent({ lots, location }) {
 
   const mapRef = useRef(null);
   const [activeLot, setActiveLot] = useState(null);
-  const [userHovered, setUserHovered] = useState(false);
+  //const [userHovered, setUserHovered] = useState(false);
 
   const emeraldIconURL = "/icons/emerald-pin.svg";
   const userDotURL = "/icons/user-dot-pulse.svg";
