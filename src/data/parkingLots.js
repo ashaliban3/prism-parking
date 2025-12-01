@@ -4,7 +4,7 @@ const parkingLots = [
   {
     id: 1,
     name: "Lot A",
-    totalSpaces: 120,
+    totalSpaces: 130,
     available: 45,
     distance: 0.3,
     lat: 33.2075,
