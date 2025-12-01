@@ -7,33 +7,21 @@ import GoogleMapComponent from "../components/GoogleMap";
 export default function Map() {
   const { location, error: locationError } = useLocation();
 
+  // Start with your manual data — no random updates
   const [lots, setLots] = useState([]);
+
   const [filter, setFilter] = useState("all");
 
-  // Update lots every 10 seconds to simulate backend updates
+  // Load lots one time only
   useEffect(() => {
-    const updateLots = () => {
-      const updated = parkingLotsData.map((lot) => ({
-        ...lot,
-        available: Math.max(
-          0,
-          Math.min(
-            lot.totalSpaces,
-            lot.available + Math.floor(Math.random() * 10 - 5)
-          )
-        ),
-        lastUpdated: Date.now(),
-      }));
-
-      setLots(updated);
-    };
-
-    updateLots();
-    const interval = setInterval(updateLots, 10000);
-    return () => clearInterval(interval);
+    const initializedLots = parkingLotsData.map((lot) => ({
+      ...lot,
+      lastUpdated: Date.now(), // give each initial timestamp
+    }));
+    setLots(initializedLots);
   }, []);
 
-  // Apply filter
+  // Apply distance filter + sorting
   const filteredLots = lots
     .sort((a, b) => a.distance - b.distance)
     .filter((lot) => {
@@ -70,12 +58,12 @@ export default function Map() {
         </select>
       </div>
 
-      {/* Google Map (fully working) */}
+      {/* Google Map */}
       <div className="mb-10">
         <GoogleMapComponent lots={filteredLots} location={location} />
       </div>
 
-      {/* Grid of lot cards */}
+      {/* Grid of Lot Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredLots.map((lot) => {
           const status = getStatus(lot.available, lot.totalSpaces);
@@ -85,22 +73,22 @@ export default function Map() {
               key={lot.id}
               className="bg-white p-5 rounded-xl shadow border border-gray-100 hover:shadow-md transition"
             >
-              {/* Lot name */}
+              {/* Lot Name */}
               <h2 className="font-semibold text-lg text-gray-800">
                 {lot.name}
               </h2>
 
-              {/* Capacity + distance */}
+              {/* Capacity + Distance */}
               <p className="text-gray-500 text-sm">
                 {lot.available} / {lot.totalSpaces} spaces • {lot.distance} mi away
               </p>
 
-              {/* Last updated */}
+              {/* Last Updated */}
               <p className="text-xs text-gray-400">
                 Updated {new Date(lot.lastUpdated).toLocaleTimeString()}
               </p>
 
-              {/* Status badge */}
+              {/* Status Badge */}
               <div
                 className={`mt-3 inline-block px-3 py-1 rounded-full text-sm border font-medium ${statusColors[status]}`}
               >
@@ -113,7 +101,7 @@ export default function Map() {
                   : "Full"}
               </div>
 
-              {/* Reserve button */}
+              {/* Reserve Button */}
               <button
                 className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all"
                 onClick={() => alert(`Reserved at ${lot.name}!`)}
