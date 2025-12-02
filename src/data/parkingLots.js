@@ -25,7 +25,7 @@ const parkingLots = [
     id: 3,
     name: "Lot C",
     totalSpaces: 200,
-    available: 130,
+    available: 140,
     distance: 1.1,
     lat: 33.2092,
     lon: -97.1589,
