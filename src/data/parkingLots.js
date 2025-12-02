@@ -14,7 +14,7 @@ const parkingLots = [
   {
     id: 2,
     name: "Garage B",
-    totalSpaces: 60,
+    totalSpaces: 50,
     available: 10,
     distance: 0.6,
     lat: 33.2101,
