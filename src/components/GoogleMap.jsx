@@ -6,16 +6,38 @@ export default function GoogleMapComponent({ lots, location }) {
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyDWSSFGxGkvtkErzD0HkvER7og8gompwfE",
     version: "weekly",
-    libraries: ["places"], // <-- IMPORTANT FIX
+    libraries: ["places"],
   });
 
   const mapRef = useRef(null);
+
+  // Track if user dragged the map
+  const [userInteracted, setUserInteracted] = useState(false);
+
+  // Track the persistent map center
+  const [mapCenter, setMapCenter] = useState(
+    location
+      ? { lat: location.lat, lng: location.lon }
+      : { lat: 33.2075, lng: -97.1521 }
+  );
+
   const [activeLot, setActiveLot] = useState(null);
-  //const [userHovered, setUserHovered] = useState(false);
 
+  // ICONS
   const emeraldIconURL = "/icons/emerald-pin.svg";
-  const userDotURL = "/icons/user-dot-pulse.svg";
 
+  // ⭐ CHANGE THIS SIZE TO MAKE THE USER DOT BIGGER ⭐
+  const userDotURL = "/icons/user-dot-pulse.svg";
+  const USER_DOT_SIZE = 32; // make this larger if you want (20 → 32 → 40)
+
+  // When location loads for the first time, center the map ONCE
+  useEffect(() => {
+    if (location && !userInteracted) {
+      setMapCenter({ lat: location.lat, lng: location.lon });
+    }
+  }, [location, userInteracted]);
+
+  // Draw markers
   useEffect(() => {
     if (!isLoaded || !mapRef.current) return;
 
@@ -23,20 +45,20 @@ export default function GoogleMapComponent({ lots, location }) {
 
     if (!map.__markers) map.__markers = [];
 
+    // Clear old markers
     map.__markers.forEach((m) => m.setMap(null));
     map.__markers = [];
 
-    // USER LOCATION
+    // USER MARKER (with larger icon)
     if (location) {
       const userMarker = new google.maps.Marker({
         map,
         position: { lat: location.lat, lng: location.lon },
         icon: {
           url: userDotURL,
-          scaledSize: new google.maps.Size(20, 20),
+          scaledSize: new google.maps.Size(USER_DOT_SIZE, USER_DOT_SIZE),
         },
       });
-
       map.__markers.push(userMarker);
     }
 
@@ -48,16 +70,15 @@ export default function GoogleMapComponent({ lots, location }) {
         icon: {
           url: emeraldIconURL,
           scaledSize: new google.maps.Size(40, 40),
-        }
+        },
       });
 
+      marker.addListener("click", () => setActiveLot(lot));
       marker.addListener("mouseover", () => setActiveLot(lot));
       marker.addListener("mouseout", () => setActiveLot(null));
-      marker.addListener("click", () => setActiveLot(lot));
 
       map.__markers.push(marker);
     });
-
   }, [isLoaded, lots, location]);
 
   if (!isLoaded) return <p>Loading map...</p>;
@@ -70,25 +91,44 @@ export default function GoogleMapComponent({ lots, location }) {
           height: "400px",
           borderRadius: "12px",
         }}
-        center={
-          location
-            ? { lat: location.lat, lng: location.lon }
-            : { lat: 33.2075, lng: -97.1521 }
-        }
+        center={mapCenter}
         zoom={14}
         onLoad={(map) => (mapRef.current = map)}
+        onDragStart={() => setUserInteracted(true)}
+        onIdle={() => {
+          if (mapRef.current) {
+            const c = mapRef.current.getCenter();
+            setMapCenter({ lat: c.lat(), lng: c.lng() });
+          }
+        }}
         options={{
           disableDefaultUI: true,
           zoomControl: true,
         }}
+      />
+
+      {/* LOT INFO POPUP */}
+      {activeLot && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-3 rounded-lg shadow-xl border text-sm">
+          <div className="font-bold text-emerald-700 text-lg">{activeLot.name}</div>
+          <p>{activeLot.available} / {activeLot.totalSpaces} spaces</p>
+        </div>
+      )}
+
+      {/* 📍 RECENTER BUTTON */}
+      <button
+        onClick={() => {
+          setUserInteracted(false);
+          if (location) {
+            const newCenter = { lat: location.lat, lng: location.lon };
+            setMapCenter(newCenter);
+            mapRef.current.panTo(newCenter);
+          }
+        }}
+        className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg border hover:bg-gray-100 transition"
       >
-        {activeLot && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-3 rounded-lg shadow-xl border text-sm">
-            <div className="font-bold text-emerald-700 text-lg">{activeLot.name}</div>
-            <p>{activeLot.available} / {activeLot.totalSpaces} spaces</p>
-          </div>
-        )}
-      </GoogleMap>
+        📍
+      </button>
     </div>
   );
 }
