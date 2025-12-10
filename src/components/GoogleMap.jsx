@@ -10,46 +10,42 @@ export default function GoogleMapComponent({ lots, location }) {
   });
 
   const mapRef = useRef(null);
-
-  // Track if user dragged the map
+  const [mapReady, setMapReady] = useState(false);   // 🔥 NEW FIX
   const [userInteracted, setUserInteracted] = useState(false);
+  const [activeLot, setActiveLot] = useState(null);
 
-  // Track the persistent map center
+  const emeraldIconURL = "/icons/emerald-pin.svg";
+  const userDotURL = "/icons/user-dot-pulse.svg";
+  const USER_DOT_SIZE = 32;
+
+  // Persistent center
   const [mapCenter, setMapCenter] = useState(
     location
       ? { lat: location.lat, lng: location.lon }
       : { lat: 33.2075, lng: -97.1521 }
   );
 
-  const [activeLot, setActiveLot] = useState(null);
-
-  // ICONS
-  const emeraldIconURL = "/icons/emerald-pin.svg";
-
-  // ⭐ CHANGE THIS SIZE TO MAKE THE USER DOT BIGGER ⭐
-  const userDotURL = "/icons/user-dot-pulse.svg";
-  const USER_DOT_SIZE = 32; // make this larger if you want (20 → 32 → 40)
-
-  // When location loads for the first time, center the map ONCE
+  // Center map ONCE when location loads
   useEffect(() => {
     if (location && !userInteracted) {
       setMapCenter({ lat: location.lat, lng: location.lon });
     }
   }, [location, userInteracted]);
 
-  // Draw markers
+  // 🔥🔥🔥 MAIN FIX — render markers ONLY when mapReady === true
   useEffect(() => {
-    if (!isLoaded || !mapRef.current) return;
+    if (!isLoaded || !mapReady || !mapRef.current) return;
 
     const map = mapRef.current;
 
+    // Prepare marker store
     if (!map.__markers) map.__markers = [];
 
     // Clear old markers
     map.__markers.forEach((m) => m.setMap(null));
     map.__markers = [];
 
-    // USER MARKER (with larger icon)
+    // USER MARKER
     if (location) {
       const userMarker = new google.maps.Marker({
         map,
@@ -79,7 +75,7 @@ export default function GoogleMapComponent({ lots, location }) {
 
       map.__markers.push(marker);
     });
-  }, [isLoaded, lots, location]);
+  }, [isLoaded, mapReady, lots, location]); // 🔥 added mapReady
 
   if (!isLoaded) return <p>Loading map...</p>;
 
@@ -93,7 +89,10 @@ export default function GoogleMapComponent({ lots, location }) {
         }}
         center={mapCenter}
         zoom={14}
-        onLoad={(map) => (mapRef.current = map)}
+        onLoad={(map) => {
+          mapRef.current = map;
+          setMapReady(true); // 🔥 ensures markers load AFTER map exists
+        }}
         onDragStart={() => setUserInteracted(true)}
         onIdle={() => {
           if (mapRef.current) {
@@ -110,16 +109,20 @@ export default function GoogleMapComponent({ lots, location }) {
       {/* LOT INFO POPUP */}
       {activeLot && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-3 rounded-lg shadow-xl border text-sm">
-          <div className="font-bold text-emerald-700 text-lg">{activeLot.name}</div>
-          <p>{activeLot.available} / {activeLot.totalSpaces} spaces</p>
+          <div className="font-bold text-emerald-700 text-lg">
+            {activeLot.name}
+          </div>
+          <p>
+            {activeLot.available} / {activeLot.totalSpaces} spaces
+          </p>
         </div>
       )}
 
-      {/* 📍 RECENTER BUTTON */}
+      {/* RECENTER BUTTON */}
       <button
         onClick={() => {
           setUserInteracted(false);
-          if (location) {
+          if (location && mapRef.current) {
             const newCenter = { lat: location.lat, lng: location.lon };
             setMapCenter(newCenter);
             mapRef.current.panTo(newCenter);
