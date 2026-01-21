@@ -1,81 +1,148 @@
-/* global google */
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 
-export default function GoogleMapComponent({ lots, location }) {
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "AIzaSyDWSSFGxGkvtkErzD0HkvER7og8gompwfE",
+const LIBRARIES = ["places"];
+const DEFAULT_CENTER = { lat: 33.2075, lng: -97.1521 };
+const USER_DOT_SIZE = 32;
+
+export default function GoogleMapComponent({ lots = [], location }) {
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     version: "weekly",
-    libraries: ["places"],
+    libraries: LIBRARIES,
   });
 
   const mapRef = useRef(null);
-  const [mapReady, setMapReady] = useState(false);   // 🔥 NEW FIX
+
+  // Marker refs (cleanup safe)
+  const userMarkerRef = useRef(null);
+  const lotMarkersRef = useRef([]); // [{ marker, listeners: [] }]
+
   const [userInteracted, setUserInteracted] = useState(false);
   const [activeLot, setActiveLot] = useState(null);
 
-  const emeraldIconURL = "/icons/emerald-pin.svg";
-  const userDotURL = "/icons/user-dot-pulse.svg";
-  const USER_DOT_SIZE = 32;
+  // If these live in /public/icons, keep them like this:
+  const emeraldIconURL = `${import.meta.env.BASE_URL}icons/emerald-pin.svg`;
+  const userDotURL = `${import.meta.env.BASE_URL}icons/user-dot-pulse.svg`;
 
-  // Persistent center
-  const [mapCenter, setMapCenter] = useState(
-    location
-      ? { lat: location.lat, lng: location.lon }
-      : { lat: 33.2075, lng: -97.1521 }
-  );
+  const initialCenter = useMemo(() => {
+    if (location?.lat != null && location?.lon != null) {
+      return { lat: Number(location.lat), lng: Number(location.lon) };
+    }
+    return DEFAULT_CENTER;
+  }, [location]);
 
-  // Center map ONCE when location loads
+  const [mapCenter, setMapCenter] = useState(initialCenter);
+
+  // Center ONCE when location arrives (unless user moved map)
   useEffect(() => {
-    if (location && !userInteracted) {
-      setMapCenter({ lat: location.lat, lng: location.lon });
+    if (!userInteracted && location?.lat != null && location?.lon != null) {
+      setMapCenter({ lat: Number(location.lat), lng: Number(location.lon) });
     }
   }, [location, userInteracted]);
 
-  // 🔥🔥🔥 MAIN FIX — render markers ONLY when mapReady === true
+  const clearLotMarkers = useCallback(() => {
+    lotMarkersRef.current.forEach(({ marker, listeners }) => {
+      try {
+        listeners?.forEach((l) => l.remove());
+      } catch {}
+      try {
+        marker.setMap(null);
+      } catch {}
+    });
+    lotMarkersRef.current = [];
+  }, []);
+
+  const clearUserMarker = useCallback(() => {
+    if (userMarkerRef.current) {
+      try {
+        userMarkerRef.current.setMap(null);
+      } catch {}
+      userMarkerRef.current = null;
+    }
+  }, []);
+
   useEffect(() => {
-    if (!isLoaded || !mapReady || !mapRef.current) return;
+    return () => {
+      clearLotMarkers();
+      clearUserMarker();
+    };
+  }, [clearLotMarkers, clearUserMarker]);
+
+  // Create/update markers
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!mapRef.current) return;
+
+    const g = window.google;
+    if (!g?.maps) return;
 
     const map = mapRef.current;
 
-    // Prepare marker store
-    if (!map.__markers) map.__markers = [];
-
-    // Clear old markers
-    map.__markers.forEach((m) => m.setMap(null));
-    map.__markers = [];
+    clearLotMarkers();
+    clearUserMarker();
 
     // USER MARKER
-    if (location) {
-      const userMarker = new google.maps.Marker({
-        map,
-        position: { lat: location.lat, lng: location.lon },
-        icon: {
-          url: userDotURL,
-          scaledSize: new google.maps.Size(USER_DOT_SIZE, USER_DOT_SIZE),
-        },
-      });
-      map.__markers.push(userMarker);
+    if (location?.lat != null && location?.lon != null) {
+      const lat = Number(location.lat);
+      const lng = Number(location.lon);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        userMarkerRef.current = new g.maps.Marker({
+          map,
+          position: { lat, lng },
+          icon: {
+            url: userDotURL,
+            scaledSize: new g.maps.Size(USER_DOT_SIZE, USER_DOT_SIZE),
+          },
+          clickable: false,
+          zIndex: 999,
+        });
+      }
     }
 
     // LOT MARKERS
-    lots.forEach((lot) => {
-      const marker = new google.maps.Marker({
+    const created = [];
+    (lots || []).forEach((lot) => {
+      const lat = Number(lot?.lat);
+      const lng = Number(lot?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      const marker = new g.maps.Marker({
         map,
-        position: { lat: lot.lat, lng: lot.lon },
+        position: { lat, lng },
         icon: {
           url: emeraldIconURL,
-          scaledSize: new google.maps.Size(40, 40),
+          scaledSize: new g.maps.Size(40, 40),
         },
       });
 
-      marker.addListener("click", () => setActiveLot(lot));
-      marker.addListener("mouseover", () => setActiveLot(lot));
-      marker.addListener("mouseout", () => setActiveLot(null));
+      const listeners = [
+        marker.addListener("click", () => setActiveLot(lot)),
+        marker.addListener("mouseover", () => setActiveLot(lot)),
+        marker.addListener("mouseout", () => setActiveLot(null)),
+      ];
 
-      map.__markers.push(marker);
+      created.push({ marker, listeners });
     });
-  }, [isLoaded, mapReady, lots, location]); // 🔥 added mapReady
+
+    lotMarkersRef.current = created;
+  }, [
+    isLoaded,
+    lots,
+    location,
+    emeraldIconURL,
+    userDotURL,
+    clearLotMarkers,
+    clearUserMarker,
+  ]);
+
+  if (loadError) {
+    return (
+      <div className="p-3 text-sm text-red-700 bg-red-50 rounded">
+        Map failed to load: {String(loadError)}
+      </div>
+    );
+  }
 
   if (!isLoaded) return <p>Loading map...</p>;
 
@@ -86,29 +153,39 @@ export default function GoogleMapComponent({ lots, location }) {
           width: "100%",
           height: "400px",
           borderRadius: "12px",
+          touchAction: "manipulation", // ✅ helps Safari/trackpad click/drag oddness
+          outline: "3px solid red",
         }}
         center={mapCenter}
         zoom={14}
         onLoad={(map) => {
           mapRef.current = map;
-          setMapReady(true); // 🔥 ensures markers load AFTER map exists
+        }}
+        onUnmount={() => {
+          mapRef.current = null;
         }}
         onDragStart={() => setUserInteracted(true)}
+        onTouchStart={() => setUserInteracted(true)}
         onIdle={() => {
-          if (mapRef.current) {
-            const c = mapRef.current.getCenter();
-            setMapCenter({ lat: c.lat(), lng: c.lng() });
-          }
+          const map = mapRef.current;
+          if (!map) return;
+          const c = map.getCenter();
+          if (!c) return;
+          setMapCenter({ lat: c.lat(), lng: c.lng() });
         }}
         options={{
           disableDefaultUI: true,
           zoomControl: true,
+          gestureHandling: "greedy",
+          clickableIcons: false, // ✅ reduces weird click targets
+          draggableCursor: "grab",
+          draggingCursor: "grabbing",
         }}
       />
 
-      {/* LOT INFO POPUP */}
+      
       {activeLot && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-3 rounded-lg shadow-xl border text-sm">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-3 rounded-lg shadow-xl border text-sm pointer-events-none z-20">
           <div className="font-bold text-emerald-700 text-lg">
             {activeLot.name}
           </div>
@@ -118,20 +195,28 @@ export default function GoogleMapComponent({ lots, location }) {
         </div>
       )}
 
-      {/* RECENTER BUTTON */}
-      <button
-        onClick={() => {
-          setUserInteracted(false);
-          if (location && mapRef.current) {
-            const newCenter = { lat: location.lat, lng: location.lon };
-            setMapCenter(newCenter);
-            mapRef.current.panTo(newCenter);
-          }
-        }}
-        className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg border hover:bg-gray-100 transition"
-      >
-        📍
-      </button>
+      {/* CONTROLS: stack so nothing overlaps */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-3 z-30 pointer-events-none">
+        <button
+          type="button"
+          onClick={() => {
+            setUserInteracted(false);
+            const map = mapRef.current;
+            if (location?.lat != null && location?.lon != null && map) {
+              const newCenter = {
+                lat: Number(location.lat),
+                lng: Number(location.lon),
+              };
+              setMapCenter(newCenter);
+              map.panTo(newCenter);
+            }
+          }}
+          className="pointer-events-auto bg-white p-3 rounded-full shadow-lg border hover:bg-gray-100 transition"
+          aria-label="Recenter map"
+        >
+          📍
+        </button>
+      </div>
     </div>
   );
 }

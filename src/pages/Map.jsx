@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import parkingLotsData from "../data/parkingLots";
 import { getStatus, statusColors } from "../utils/statusHelpers";
