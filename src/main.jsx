@@ -3,6 +3,21 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { Capacitor } from "@capacitor/core";
+import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebaseClient";
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    try {
+      await signInAnonymously(auth);
+      console.log("✅ Signed in anonymously");
+    } catch (e) {
+      console.error("❌ Anonymous sign-in failed:", e);
+    }
+  } else {
+    console.log("🔐 Auth uid:", user.uid);
+  }
+});
 
 console.log("Maps key:", import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
 console.log(import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.slice(0,6));

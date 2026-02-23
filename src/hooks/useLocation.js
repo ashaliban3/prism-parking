@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+// src/hooks/useLocation.js
+import { useEffect, useRef, useState } from "react";
 
 export default function useLocation() {
   const [location, setLocation] = useState(null);
@@ -11,56 +12,48 @@ export default function useLocation() {
       return;
     }
 
-    // --- OPTIONS to make iOS more stable ---
+    // Browsers require HTTPS for geolocation (localhost is okay).
+    const isSecure =
+      window.location.protocol === "https:" || window.location.hostname === "localhost";
+    if (!isSecure) {
+      setError("Geolocation requires HTTPS (or localhost).");
+      return;
+    }
+
     const geoOptions = {
       enableHighAccuracy: true,
-      timeout: 8000,          // fail fast if iOS delays the response
-      maximumAge: 0,          // do NOT reuse stale cached positions
+      timeout: 8000,
+      maximumAge: 0,
     };
 
-    // --- FIRST FIX: request a one-time location immediately ---
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        });
-        setError(null);
-      },
-      (err) => {
-        if (err.code === 1) {
-          setError("Location permission denied.");
-        } else if (err.code === 2) {
-          setError("Position unavailable.");
-        } else if (err.code === 3) {
-          setError("Location request timed out.");
-        } else {
-          setError("Unable to retrieve location.");
-        }
-      },
-      geoOptions
-    );
+    const onSuccess = (pos) => {
+      setLocation({
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+      });
+      setError(null);
+    };
 
-    // --- SECOND FIX: start continuous tracking (iOS-friendly) ---
+    const onError = (err) => {
+      if (err.code === 1) setError("Location permission denied.");
+      else if (err.code === 2) setError("Position unavailable.");
+      else if (err.code === 3) setError("Location request timed out.");
+      else setError("Unable to retrieve location.");
+    };
+
+    // One-time initial fix
+    navigator.geolocation.getCurrentPosition(onSuccess, onError, geoOptions);
+
+    // Continuous tracking
     watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        setLocation({
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        });
-        setError(null);
-      },
+      onSuccess,
       (err) => {
-        if (err.code === 1) {
-          setError("Location permission denied.");
-        } else {
-          setError("Unable to track location.");
-        }
+        // Keep error message minimal while tracking
+        if (err.code === 1) setError("Location permission denied.");
       },
       geoOptions
     );
 
-    // --- CLEANUP: stop tracking on unmount ---
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);

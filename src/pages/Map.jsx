@@ -1,34 +1,55 @@
-import React from "react";
-import { useEffect, useState } from "react";
-import parkingLotsData from "../data/parkingLots";
+// src/pages/Map.jsx
+import React, { useMemo, useState } from "react";
 import { getStatus, statusColors } from "../utils/statusHelpers";
 import useLocation from "../hooks/useLocation";
+import useParkingLots from "../hooks/useParkingLots";
 import GoogleMapComponent from "../components/GoogleMap";
+
+function haversineMiles(aLat, aLon, bLat, bLon) {
+  const toRad = (x) => (x * Math.PI) / 180;
+  const R = 3958.8; // Earth radius in miles
+  const dLat = toRad(bLat - aLat);
+  const dLon = toRad(bLon - aLon);
+
+  const s1 = Math.sin(dLat / 2) ** 2;
+  const s2 =
+    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) ** 2;
+
+  return 2 * R * Math.asin(Math.sqrt(s1 + s2));
+}
 
 export default function Map() {
   const { location, error: locationError } = useLocation();
-
-  // Start with your manual data — no random updates
-  const [lots, setLots] = useState([]);
-
+  const { lots: rawLots, loading: lotsLoading, error: lotsError } = useParkingLots();
   const [filter, setFilter] = useState("all");
 
-  // Load lots one time only
-  useEffect(() => {
-    const initializedLots = parkingLotsData.map((lot) => ({
-      ...lot,
-      lastUpdated: Date.now(), // give each initial timestamp
-    }));
-    setLots(initializedLots);
-  }, []);
+  // Add distance (derived) when location is available
+  const lotsWithDistance = useMemo(() => {
+    return rawLots.map((lot) => {
+      const hasCoords = lot.lat != null && lot.lon != null;
+      const hasUser = location?.lat != null && location?.lon != null;
 
-  // Apply distance filter + sorting
-  const filteredLots = lots
-    .sort((a, b) => a.distance - b.distance)
-    .filter((lot) => {
+      const distance =
+        hasCoords && hasUser
+          ? haversineMiles(location.lat, location.lon, lot.lat, lot.lon)
+          : Number.POSITIVE_INFINITY;
+
+      return {
+        ...lot,
+        distance, // miles
+      };
+    });
+  }, [rawLots, location]);
+
+  // Sort + filter
+  const filteredLots = useMemo(() => {
+    const sorted = [...lotsWithDistance].sort((a, b) => a.distance - b.distance);
+
+    return sorted.filter((lot) => {
       if (filter === "near") return lot.distance <= 0.5;
       return true;
     });
+  }, [lotsWithDistance, filter]);
 
   return (
     <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
@@ -41,9 +62,13 @@ export default function Map() {
         </p>
       )}
 
-      {/* Location error */}
-      {locationError && (
-        <p className="text-sm text-red-500 mb-2">{locationError}</p>
+      {/* Errors */}
+      {locationError && <p className="text-sm text-red-500 mb-2">{locationError}</p>}
+      {lotsError && <p className="text-sm text-red-500 mb-2">{lotsError}</p>}
+
+      {/* Loading */}
+      {lotsLoading && (
+        <p className="text-sm text-gray-600 mb-4">Loading live lot data...</p>
       )}
 
       {/* Filter */}
@@ -69,27 +94,26 @@ export default function Map() {
         {filteredLots.map((lot) => {
           const status = getStatus(lot.available, lot.totalSpaces);
 
+          const distanceText =
+            Number.isFinite(lot.distance) && lot.distance !== Number.POSITIVE_INFINITY
+              ? `${lot.distance.toFixed(2)} mi away`
+              : "Distance unavailable";
+
           return (
             <div
               key={lot.id}
               className="bg-white p-5 rounded-xl shadow border border-gray-100 hover:shadow-md transition"
             >
-              {/* Lot Name */}
-              <h2 className="font-semibold text-lg text-gray-800">
-                {lot.name}
-              </h2>
+              <h2 className="font-semibold text-lg text-gray-800">{lot.name}</h2>
 
-              {/* Capacity + Distance */}
               <p className="text-gray-500 text-sm">
-                {lot.available} / {lot.totalSpaces} spaces • {lot.distance} mi away
+                {lot.available} / {lot.totalSpaces} spaces • {distanceText}
               </p>
 
-              {/* Last Updated */}
               <p className="text-xs text-gray-400">
                 Updated {new Date(lot.lastUpdated).toLocaleTimeString()}
               </p>
 
-              {/* Status Badge */}
               <div
                 className={`mt-3 inline-block px-3 py-1 rounded-full text-sm border font-medium ${statusColors[status]}`}
               >
@@ -102,7 +126,6 @@ export default function Map() {
                   : "Full"}
               </div>
 
-              {/* Reserve Button */}
               <button
                 className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all"
                 onClick={() => alert(`Reserved at ${lot.name}!`)}
