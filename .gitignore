@@ -8,6 +8,14 @@
 # testing
 /coverage
 
+# Firebase mobile configs (keep out of public repos)
+**/GoogleService-Info.plist
+**/google-services.json
+
+# Env files
+.env
+.env.*
+
 # production
 /build
 node_modules
