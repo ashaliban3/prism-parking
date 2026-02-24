@@ -6,13 +6,13 @@ import { getAuth } from "firebase/auth";
 // We'll initialize analytics only on web later if you really want it.
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBR4gCjiWo1i_fqlgNv3LSsOOWg8EI1z7c",
-  authDomain: "prism-dc193.firebaseapp.com",
-  databaseURL: "https://prism-dc193-default-rtdb.firebaseio.com",
-  projectId: "prism-dc193",
-  storageBucket: "prism-dc193.firebasestorage.app",
-  messagingSenderId: "736992613237",
-  appId: "1:736992613237:web:d4dd5a13b6cbd05690f93c",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: "G-NF3QTB95DN",
 };
 
