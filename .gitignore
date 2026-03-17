@@ -57,3 +57,4 @@ android/local.properties
 # =========================
 *.pem
 *.p12
+node_modules/
