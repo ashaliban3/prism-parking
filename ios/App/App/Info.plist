@@ -47,5 +47,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>PRISM uses your location to show your position on the map and estimate distance to parking lots.</string>
+
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>PRISM uses your location to show your position on the map and estimate distance to parking lots.</string>
 </dict>
 </plist>

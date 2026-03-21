@@ -1,14 +1,6 @@
-
-// import { useEffect, useMemo, useState } from "react";
-// import { ref, onValue } from "firebase/database";
-// import { db } from "../firebaseClient"; // <-- make sure you have src/firebase.js exporting db
-// import lotMeta from "../data/lotMeta";
-
-// function parseLastUpdate(lastUpdate) {
-//   if (!lastUpdate) return Date.now();
-//   const t = Date.parse(lastUpdate);
-//   return Number.isNaN(t) ? Date.now() : t;
-// }
+// import { useEffect, useState } from "react";
+// import { ref, onValue, get } from "firebase/database";
+// import { db } from "../firebaseClient";
 
 // export default function useParkingLots() {
 //   const [lots, setLots] = useState([]);
@@ -16,50 +8,54 @@
 //   const [error, setError] = useState(null);
 
 //   useEffect(() => {
+//     console.log("🔥 useParkingLots mounted");
+//     console.log("📥 Subscribing directly to /lots");
+
 //     const lotsRef = ref(db, "lots");
 
-//     const unsubscribe = onValue(
-//       lotsRef,
-//       (snap) => {
-//         const data = snap.val() || {};
+//     // one-time read for debugging
+//     get(lotsRef)
+//       .then((snapshot) => {
+//         const data = snapshot.val();
+//         console.log("🧪 get(/lots) exists:", snapshot.exists());
+//         console.log("🧪 get(/lots) raw:", data);
+//         console.log("🧪 get(/lots) keys:", data ? Object.keys(data) : []);
+//       })
+//       .catch((err) => {
+//         console.error("❌ get(/lots) failed:", err);
+//       });
 
-//         const arr = Object.entries(data).map(([lotKey, lot]) => {
-//           const meta = lotMeta[lotKey] || {};
+//     const unsubscribe = onValue(lotsRef, (snapshot) => {
+//   console.log("snapshot exists:", snapshot.exists());
+//   console.log("snapshot key:", snapshot.key);
+//   console.log("snapshot raw val:", snapshot.val());
 
-//           const totalSpaces =
-//             typeof lot.totalCapacity === "number" ? lot.totalCapacity : 0;
+//   const value = snapshot.val();
+//   if (!value) {
+//     console.log("No lots data returned from RTDB");
+//     setLots([]);
+//     setLoading(false);
+//     return;
+//   }
 
-//           const currentOccupancy =
-//             typeof lot.currentOccupancy === "number" ? lot.currentOccupancy : 0;
+//   const parsed = Object.entries(value).map(([id, lot]) => ({
+//     id,
+//     ...lot,
+//   }));
 
-//           const available = Math.max(totalSpaces - currentOccupancy, 0);
+//   console.log("Parsed lots:", parsed);
+//   setLots(parsed);
+//   setLoading(false);
+// }, (err) => {
+//   console.error("RTDB onValue error:", err);
+//   setError(err.message);
+//   setLoading(false);
+// });
 
-//           return {
-//             id: lotKey,                 // stable key for React + your UI
-//             lotKey,                     // useful for debugging
-//             name: lot.name || lotKey,
-//             totalSpaces,
-//             currentOccupancy,
-//             available,
-//             status: lot.status || null,
-//             lastUpdated: parseLastUpdate(lot.lastUpdate),
-//             lat: meta.lat ?? null,
-//             lon: meta.lon ?? null,
-//           };
-//         });
-
-//         setLots(arr);
-//         setLoading(false);
-//         setError(null);
-//       },
-//       (err) => {
-//         console.error("RTDB /lots listener error:", err);
-//         setError("Unable to load lots from Firebase.");
-//         setLoading(false);
-//       }
-//     );
-
-//     return () => unsubscribe();
+//     return () => {
+//       console.log("🧹 Cleaning up /lots listener");
+//       unsubscribe();
+//     };
 //   }, []);
 
 //   return { lots, loading, error };
@@ -86,13 +82,19 @@ export default function useParkingLots() {
     let unsubscribeLots = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      console.log("🔥 useParkingLots auth changed:", user?.uid ?? null);
+
+      // Wait for anonymous auth to finish instead of treating null as an error
       if (!user) {
-        setError("User is not authenticated.");
-        setLoading(false);
+        setLoading(true);
         return;
       }
 
       const lotsRef = ref(db, "lots");
+
+      if (unsubscribeLots) {
+        unsubscribeLots();
+      }
 
       unsubscribeLots = onValue(
         lotsRef,
@@ -116,6 +118,7 @@ export default function useParkingLots() {
               name: lot.name || lotKey,
               totalSpaces,
               currentOccupancy,
+              occupied: currentOccupancy,
               available,
               status: lot.status || null,
               lastUpdated: parseLastUpdate(lot.lastUpdate),
@@ -124,9 +127,11 @@ export default function useParkingLots() {
             };
           });
 
+          console.log("✅ Parsed lots:", arr);
+
           setLots(arr);
-          setLoading(false);
           setError(null);
+          setLoading(false);
         },
         (err) => {
           console.error("RTDB /lots listener error:", err);

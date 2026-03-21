@@ -1,56 +1,62 @@
-// alert("main.jsx ran");
-// import React from "react";
-// import ReactDOM from "react-dom/client";
-// import App from "./App";
-// import "./index.css";
-// import { Capacitor } from "@capacitor/core";
-// import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
-// import { auth } from "./firebaseClient";
-
-// console.log("✅ main.jsx loaded");
-
-// onAuthStateChanged(auth, async (user) => {
-//   if (!user) {
-//     try {
-//       await signInAnonymously(auth);
-//       console.log("✅ Signed in anonymously");
-//     } catch (e) {
-//       console.error("❌ Anonymous sign-in failed:", e);
-//     }
-//   } else {
-//     console.log("🔐 Auth uid:", user.uid);
-//   }
-// });
-
-// console.log("Maps key:", import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
-// console.log(import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.slice(0,6));
-
-
-// const isNative = Capacitor.isNativePlatform();
-
-// if (isNative && "serviceWorker" in navigator) {
-//   navigator.serviceWorker
-//     .getRegistrations()
-//     .then((regs) => regs.forEach((reg) => reg.unregister()))
-//     .catch(() => {});
-// }
-
-// ReactDOM.createRoot(document.getElementById("root")).render(
-//   <React.StrictMode>
-//     <App />
-//   </React.StrictMode>
-// );
-
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./index.css";
 import { Capacitor } from "@capacitor/core";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebaseClient";
+import { ref, get } from "firebase/database";
+import App from "./App";
+import "./index.css";
+import { auth, db } from "./firebaseClient";
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("#root not found");
+
+function withTimeout(promise, label, ms = 8000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
+console.log("🚀 main.jsx started");
+console.log("window.Capacitor exists:", !!window.Capacitor);
+console.log("window.Capacitor.triggerEvent exists:", !!window.Capacitor?.triggerEvent);
+console.log("Capacitor platform:", Capacitor.getPlatform());
+
+console.log("🚀 main.jsx started");
+console.log("👤 auth.currentUser at startup:", auth.currentUser?.uid ?? null);
+console.log("📱 isNative:", Capacitor.isNativePlatform());
+console.log("📱 platform:", Capacitor.getPlatform());
+console.log("🌐 origin:", window.location.origin);
+console.log("🌐 href:", window.location.href);
+
+onAuthStateChanged(auth, async (user) => {
+  console.log("AUTH STATE CHANGED");
+  console.log("uid:", user?.uid ?? null);
+  console.log("isAnonymous:", user?.isAnonymous ?? null);
+
+  if (!user) {
+    console.log("⚠️ No user yet, attempting anonymous sign-in...");
+    try {
+      const cred = await withTimeout(
+        signInAnonymously(auth),
+        "signInAnonymously(auth)",
+        10000
+      );
+      console.log("✅ Signed in anonymously:", cred.user.uid);
+    } catch (e) {
+      console.error("❌ Anonymous sign-in failed:", e);
+    }
+  } else {
+    console.log("🔐 Existing auth uid:", user.uid);
+  }
+});
+
+setTimeout(() => {
+  console.log("⏱ delayed check window.Capacitor:", !!window.Capacitor);
+  console.log("⏱ delayed check triggerEvent:", !!window.Capacitor?.triggerEvent);
+}, 1000);
 
 ReactDOM.createRoot(rootEl).render(
   <React.StrictMode>
@@ -58,22 +64,43 @@ ReactDOM.createRoot(rootEl).render(
   </React.StrictMode>
 );
 
-// After render: auth setup (won’t block UI)
-try {
-  if (!auth) throw new Error("auth is undefined (firebaseClient export/init issue)");
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      try {
-        await signInAnonymously(auth);
-        console.log("✅ Signed in anonymously");
-      } catch (e) {
-        console.error("❌ Anonymous sign-in failed:", e);
-      }
-    } else {
-      console.log("🔐 Auth uid:", user.uid);
-    }
-  });
-} catch (e) {
-  console.error("❌ Firebase init/auth listener crashed:", e);
+if (Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((regs) => regs.forEach((reg) => reg.unregister()))
+    .catch((err) => console.error("❌ SW unregister failed:", err));
 }
+
+(async () => {
+  try {
+    console.log("🧪 about to get /lots");
+    const snap = await withTimeout(get(ref(db, "lots")), "get(/lots)", 10000);
+    console.log("🧪 direct get(/lots) exists:", snap.exists());
+    console.log("🧪 direct get(/lots) value:", snap.val());
+  } catch (err) {
+    console.error("❌ direct get(/lots) failed:", err);
+  }
+})();
+
+(async () => {
+  try {
+    console.log("🧪 about to REST fetch /lots.json");
+    const res = await withTimeout(
+      fetch("https://prism-dc193-default-rtdb.firebaseio.com/lots.json"),
+      "fetch(/lots.json)",
+      10000
+    );
+
+    console.log("🧪 REST /lots status:", res.status);
+
+    const data = await withTimeout(
+      res.json(),
+      "res.json() for /lots.json",
+      10000
+    );
+
+    console.log("🧪 REST /lots data:", data);
+  } catch (err) {
+    console.error("❌ REST /lots failed:", err);
+  }
+})();

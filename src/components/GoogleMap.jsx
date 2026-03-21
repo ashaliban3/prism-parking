@@ -1,3 +1,62 @@
+// import React from "react";
+
+// export default function GoogleMapComponent({ lots = [], location }) {
+//   return (
+//     <div
+//       className="rounded-xl border bg-white p-4 shadow"
+//       style={{ minHeight: "220px" }}
+//     >
+//       <div className="mb-3 text-lg font-bold text-red-700">
+//         Map removed for debugging
+//       </div>
+
+//       <div className="space-y-2 text-sm">
+//         <div>
+//           <strong>Lots count:</strong> {Array.isArray(lots) ? lots.length : 0}
+//         </div>
+
+//         <div>
+//           <strong>Location:</strong>{" "}
+//           {location
+//             ? JSON.stringify(location)
+//             : "No location object received"}
+//         </div>
+
+//         <div>
+//           <strong>First lot:</strong>{" "}
+//           {lots && lots.length > 0
+//             ? JSON.stringify(lots[0], null, 2)
+//             : "No lots loaded"}
+//         </div>
+//       </div>
+
+//       {lots && lots.length > 0 && (
+//         <div className="mt-4">
+//           <div className="mb-2 font-semibold">Lots preview:</div>
+//           <div className="space-y-2">
+//             {lots.slice(0, 5).map((lot, index) => (
+//               <div
+//                 key={lot.id ?? index}
+//                 className="rounded border p-2 text-sm"
+//               >
+//                 <div><strong>Name:</strong> {lot.name ?? "Unnamed lot"}</div>
+//                 <div><strong>Lat:</strong> {String(lot.lat)}</div>
+//                 <div><strong>Lon:</strong> {String(lot.lon)}</div>
+//                 <div>
+//                   <strong>Available:</strong> {String(lot.available)}
+//                 </div>
+//                 <div>
+//                   <strong>Total:</strong> {String(lot.totalSpaces)}
+//                 </div>
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
 
@@ -13,15 +72,12 @@ export default function GoogleMapComponent({ lots = [], location }) {
   });
 
   const mapRef = useRef(null);
-
-  // Marker refs (cleanup safe)
   const userMarkerRef = useRef(null);
-  const lotMarkersRef = useRef([]); // [{ marker, listeners: [] }]
+  const lotMarkersRef = useRef([]);
 
   const [userInteracted, setUserInteracted] = useState(false);
   const [activeLot, setActiveLot] = useState(null);
 
-  // If these live in /public/icons, keep them like this:
   const emeraldIconURL = `${import.meta.env.BASE_URL}icons/emerald-pin.svg`;
   const userDotURL = `${import.meta.env.BASE_URL}icons/user-dot-pulse.svg`;
 
@@ -34,7 +90,6 @@ export default function GoogleMapComponent({ lots = [], location }) {
 
   const [mapCenter, setMapCenter] = useState(initialCenter);
 
-  // Center ONCE when location arrives (unless user moved map)
   useEffect(() => {
     if (!userInteracted && location?.lat != null && location?.lon != null) {
       setMapCenter({ lat: Number(location.lat), lng: Number(location.lon) });
@@ -69,10 +124,8 @@ export default function GoogleMapComponent({ lots = [], location }) {
     };
   }, [clearLotMarkers, clearUserMarker]);
 
-  // Create/update markers
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!mapRef.current) return;
+    if (!isLoaded || !mapRef.current) return;
 
     const g = window.google;
     if (!g?.maps) return;
@@ -82,10 +135,10 @@ export default function GoogleMapComponent({ lots = [], location }) {
     clearLotMarkers();
     clearUserMarker();
 
-    // USER MARKER
     if (location?.lat != null && location?.lon != null) {
       const lat = Number(location.lat);
       const lng = Number(location.lon);
+
       if (Number.isFinite(lat) && Number.isFinite(lng)) {
         userMarkerRef.current = new g.maps.Marker({
           map,
@@ -100,9 +153,10 @@ export default function GoogleMapComponent({ lots = [], location }) {
       }
     }
 
-    // LOT MARKERS
+    // TEMP TEST: disable lot markers to isolate Android slowness
+lotMarkersRef.current = [];
     const created = [];
-    (lots || []).forEach((lot) => {
+    lots.forEach((lot) => {
       const lat = Number(lot?.lat);
       const lng = Number(lot?.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -113,6 +167,7 @@ export default function GoogleMapComponent({ lots = [], location }) {
         icon: {
           url: emeraldIconURL,
           scaledSize: new g.maps.Size(40, 40),
+
         },
       });
 
@@ -153,8 +208,7 @@ export default function GoogleMapComponent({ lots = [], location }) {
           width: "100%",
           height: "400px",
           borderRadius: "12px",
-          touchAction: "manipulation", // ✅ helps Safari/trackpad click/drag oddness
-          outline: "3px solid red",
+          touchAction: "manipulation",
         }}
         center={mapCenter}
         zoom={14}
@@ -166,6 +220,7 @@ export default function GoogleMapComponent({ lots = [], location }) {
         }}
         onDragStart={() => setUserInteracted(true)}
         onTouchStart={() => setUserInteracted(true)}
+
         onIdle={() => {
           const map = mapRef.current;
           if (!map) return;
@@ -177,26 +232,24 @@ export default function GoogleMapComponent({ lots = [], location }) {
           disableDefaultUI: true,
           zoomControl: true,
           gestureHandling: "greedy",
-          clickableIcons: false, // ✅ reduces weird click targets
+          clickableIcons: false,
           draggableCursor: "grab",
           draggingCursor: "grabbing",
         }}
       />
 
-      
       {activeLot && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white px-4 py-3 rounded-lg shadow-xl border text-sm pointer-events-none z-20">
           <div className="font-bold text-emerald-700 text-lg">
             {activeLot.name}
           </div>
           <p>
-            {activeLot.available} / {activeLot.totalSpaces} spaces
+            {activeLot.currentOccupancy} / {activeLot.totalSpaces} occupied
           </p>
         </div>
       )}
 
-      {/* CONTROLS: stack so nothing overlaps */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-3 z-30 pointer-events-none">
+      <div className="absolute bottom-4 left-4 flex flex-col gap-3 z-30 pointer-events-none">
         <button
           type="button"
           onClick={() => {
@@ -219,4 +272,12 @@ export default function GoogleMapComponent({ lots = [], location }) {
       </div>
     </div>
   );
+
+  console.log("Starting maps load");
+console.log("Native platform:", Capacitor.isNativePlatform());
+console.log("Using key prefix:", apiKey?.slice(0, 8));
+
+script.onload = () => console.log("Maps script loaded");
+script.onerror = (e) => console.error("Maps script failed", e);
+
 }

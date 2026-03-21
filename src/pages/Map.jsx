@@ -1,4 +1,170 @@
-// src/pages/Map.jsx
+// // src/pages/Map.jsx
+// import React, { useMemo, useState } from "react";
+// import { getStatus, statusColors } from "../utils/statusHelpers";
+// import useLocation from "../hooks/useLocation";
+// import useParkingLots from "../hooks/useParkingLots";
+// import GoogleMapComponent from "../components/GoogleMap";
+
+// function haversineMiles(aLat, aLon, bLat, bLon) {
+//   const toRad = (x) => (x * Math.PI) / 180;
+//   const R = 3958.8;
+//   const dLat = toRad(bLat - aLat);
+//   const dLon = toRad(bLon - aLon);
+
+//   const s1 = Math.sin(dLat / 2) ** 2;
+//   const s2 =
+//     Math.cos(toRad(aLat)) *
+//     Math.cos(toRad(bLat)) *
+//     Math.sin(dLon / 2) ** 2;
+
+//   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
+// }
+
+// export default function Map() {
+//   const { location, error: locationError } = useLocation();
+//   const { lots: rawLots, loading: lotsLoading, error: lotsError } = useParkingLots();
+//   const [filter, setFilter] = useState("all");
+
+//   // Add distance
+//   const lotsWithDistance = useMemo(() => {
+//     return rawLots.map((lot) => {
+//       const hasCoords = lot.lat != null && lot.lon != null;
+//       const hasUser = location?.lat != null && location?.lon != null;
+
+//       const distance =
+//         hasCoords && hasUser
+//           ? haversineMiles(location.lat, location.lon, lot.lat, lot.lon)
+//           : Number.POSITIVE_INFINITY;
+
+//       return { ...lot, distance };
+//     });
+//   }, [rawLots, location]);
+
+//   // Sort + filter
+//   const filteredLots = useMemo(() => {
+//     const sorted = [...lotsWithDistance].sort(
+//       (a, b) => a.distance - b.distance
+//     );
+
+//     return sorted.filter((lot) => {
+//       if (filter === "near") return lot.distance <= 0.5;
+//       return true;
+//     });
+//   }, [lotsWithDistance, filter]);
+
+//   return (
+//     <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
+//       <h1 className="text-3xl font-bold mb-4 text-emerald-700">
+//         Find Parking
+//       </h1>
+
+//       {/* Location */}
+//       {location && (
+//         <p className="text-sm text-gray-600 mb-2">
+//           Your location: {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
+//         </p>
+//       )}
+
+//       {/* Errors */}
+//       {locationError && (
+//         <p className="text-sm text-red-500 mb-2">{locationError}</p>
+//       )}
+//       {lotsError && (
+//         <p className="text-sm text-red-500 mb-2">
+//           {String(lotsError.message || lotsError)}
+//         </p>
+//       )}
+
+//       {/* Loading */}
+//       {lotsLoading && (
+//         <p className="text-sm text-gray-600 mb-4">
+//           Loading live lot data...
+//         </p>
+//       )}
+
+//       {/* DEBUG PANEL (SAFE) */}
+//       <div className="mb-6 p-3 bg-white border border-gray-300 rounded text-xs text-gray-800">
+//         <p>lotsLoading: {String(lotsLoading)}</p>
+//         <p>lotsError: {lotsError ? String(lotsError) : "none"}</p>
+//         <p>rawLots length: {rawLots.length}</p>
+//         <p>filteredLots length: {filteredLots.length}</p>
+//         <pre className="whitespace-pre-wrap break-words mt-2">
+//           {JSON.stringify(rawLots, null, 2)}
+//         </pre>
+//       </div>
+
+//       {/* Filter */}
+//       <div className="flex items-center space-x-4 mb-6">
+//         <label className="text-gray-700 font-medium">Filter:</label>
+//         <select
+//           className="border p-2 rounded"
+//           value={filter}
+//           onChange={(e) => setFilter(e.target.value)}
+//         >
+//           <option value="all">All Lots</option>
+//           <option value="near">Within 0.5 miles</option>
+//         </select>
+//       </div>
+
+//       {/* Map (currently debug version) */}
+//       <div className="mb-10">
+//         <GoogleMapComponent lots={filteredLots} location={location} />
+//       </div>
+
+//       {/* Cards */}
+//       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+//         {filteredLots.map((lot) => {
+//           const status = getStatus(lot.available, lot.totalSpaces);
+
+//           const distanceText =
+//             Number.isFinite(lot.distance) &&
+//             lot.distance !== Number.POSITIVE_INFINITY
+//               ? `${lot.distance.toFixed(2)} mi away`
+//               : "Distance unavailable";
+
+//           return (
+//             <div
+//               key={lot.id}
+//               className="bg-white p-5 rounded-xl shadow border border-gray-100"
+//             >
+//               <h2 className="font-semibold text-lg text-gray-800">
+//                 {lot.name}
+//               </h2>
+
+//               <p className="text-gray-500 text-sm">
+//                 {lot.available} / {lot.totalSpaces} • {distanceText}
+//               </p>
+
+//               <p className="text-xs text-gray-400">
+//                 Updated {new Date(lot.lastUpdated).toLocaleTimeString()}
+//               </p>
+
+//               <div
+//                 className={`mt-3 inline-block px-3 py-1 rounded-full text-sm border font-medium ${statusColors[status]}`}
+//               >
+//                 {status === "high"
+//                   ? "Plenty of spots"
+//                   : status === "medium"
+//                   ? "Limited spots"
+//                   : status === "low"
+//                   ? "Almost full"
+//                   : "Full"}
+//               </div>
+
+//               <button
+//                 className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg"
+//                 onClick={() => alert(`Reserved at ${lot.name}!`)}
+//               >
+//                 Reserve Spot
+//               </button>
+//             </div>
+//           );
+//         })}
+//       </div>
+//     </div>
+//   );
+// }
+
 import React, { useMemo, useState } from "react";
 import { getStatus, statusColors } from "../utils/statusHelpers";
 import useLocation from "../hooks/useLocation";
@@ -7,7 +173,7 @@ import GoogleMapComponent from "../components/GoogleMap";
 
 function haversineMiles(aLat, aLon, bLat, bLon) {
   const toRad = (x) => (x * Math.PI) / 180;
-  const R = 3958.8; // Earth radius in miles
+  const R = 3958.8;
   const dLat = toRad(bLat - aLat);
   const dLon = toRad(bLon - aLon);
 
@@ -20,10 +186,14 @@ function haversineMiles(aLat, aLon, bLat, bLon) {
 
 export default function Map() {
   const { location, error: locationError } = useLocation();
-  const { lots: rawLots, loading: lotsLoading, error: lotsError } = useParkingLots();
+  const {
+    lots: rawLots,
+    loading: lotsLoading,
+    error: lotsError,
+  } = useParkingLots();
+
   const [filter, setFilter] = useState("all");
 
-  // Add distance (derived) when location is available
   const lotsWithDistance = useMemo(() => {
     return rawLots.map((lot) => {
       const hasCoords = lot.lat != null && lot.lon != null;
@@ -36,12 +206,11 @@ export default function Map() {
 
       return {
         ...lot,
-        distance, // miles
+        distance,
       };
     });
   }, [rawLots, location]);
 
-  // Sort + filter
   const filteredLots = useMemo(() => {
     const sorted = [...lotsWithDistance].sort((a, b) => a.distance - b.distance);
 
@@ -55,23 +224,21 @@ export default function Map() {
     <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
       <h1 className="text-3xl font-bold mb-4 text-emerald-700">Find Parking</h1>
 
-      {/* User location */}
       {location && (
         <p className="text-sm text-gray-600 mb-2">
           Your location: {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
         </p>
       )}
 
-      {/* Errors */}
-      {locationError && <p className="text-sm text-red-500 mb-2">{locationError}</p>}
+      {locationError && (
+        <p className="text-sm text-red-500 mb-2">{locationError}</p>
+      )}
       {lotsError && <p className="text-sm text-red-500 mb-2">{lotsError}</p>}
 
-      {/* Loading */}
       {lotsLoading && (
         <p className="text-sm text-gray-600 mb-4">Loading live lot data...</p>
       )}
 
-      {/* Filter */}
       <div className="flex items-center space-x-4 mb-6">
         <label className="text-gray-700 font-medium">Filter:</label>
         <select
@@ -84,12 +251,10 @@ export default function Map() {
         </select>
       </div>
 
-      {/* Google Map */}
       <div className="mb-10">
         <GoogleMapComponent lots={filteredLots} location={location} />
       </div>
 
-      {/* Grid of Lot Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredLots.map((lot) => {
           const status = getStatus(lot.available, lot.totalSpaces);
@@ -99,6 +264,10 @@ export default function Map() {
               ? `${lot.distance.toFixed(2)} mi away`
               : "Distance unavailable";
 
+          const updatedText = Number.isFinite(lot.lastUpdated)
+            ? new Date(lot.lastUpdated).toLocaleTimeString()
+            : "Unknown";
+
           return (
             <div
               key={lot.id}
@@ -107,12 +276,10 @@ export default function Map() {
               <h2 className="font-semibold text-lg text-gray-800">{lot.name}</h2>
 
               <p className="text-gray-500 text-sm">
-                {lot.available} / {lot.totalSpaces} spaces • {distanceText}
+                {lot.currentOccupancy} / {lot.totalSpaces} spaces occupied • {distanceText}
               </p>
 
-              <p className="text-xs text-gray-400">
-                Updated {new Date(lot.lastUpdated).toLocaleTimeString()}
-              </p>
+              <p className="text-xs text-gray-400">Updated {updatedText}</p>
 
               <div
                 className={`mt-3 inline-block px-3 py-1 rounded-full text-sm border font-medium ${statusColors[status]}`}

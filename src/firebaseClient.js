@@ -1,43 +1,65 @@
+import { Capacitor } from "@capacitor/core";
 import { initializeApp, getApps } from "firebase/app";
-import { getDatabase } from "firebase/database";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "firebase/auth";
+import {
+  initializeAuth,
+  inMemoryPersistence,
+} from "firebase/auth";
+import {
+  getDatabase,
+  forceLongPolling,
+  // forceWebSockets,
+} from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? "prism-dc193.firebaseapp.com",
+  apiKey:
+    import.meta.env.VITE_FIREBASE_API_KEY ??
+    "AIzaSyBR4gCjiWo1i_fqlgNv3LSsOOWg8EI1z7c",
+  authDomain:
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ??
+    "prism-dc193.firebaseapp.com",
   databaseURL:
-    import.meta.env.VITE_FIREBASE_DATABASE_URL ||
+    import.meta.env.VITE_FIREBASE_DATABASE_URL ??
     "https://prism-dc193-default-rtdb.firebaseio.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "prism-dc193",
   storageBucket:
-    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? "prism-dc193.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "",
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ??
+    "prism-dc193.appspot.com",
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "736992613237",
+  appId:
+    import.meta.env.VITE_FIREBASE_APP_ID ??
+    "1:736992613237:web:d4dd5a13b6cbd05690f93c",
   measurementId: "G-NF3QTB95DN",
 };
 
-console.log("ENV databaseURL:", import.meta.env.VITE_FIREBASE_DATABASE_URL);
-
-if (!firebaseConfig.databaseURL) {
-  console.error("❌ Firebase databaseURL is missing. RTDB will not work.");
-}
-
-if (!firebaseConfig.projectId) {
-  console.error("❌ Firebase projectId is missing.");
-}
-
-// Prevent double-init during hot reload
 export const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
+const isNative = Capacitor.isNativePlatform();
+const platform = Capacitor.getPlatform();
+
+/*
+  For iOS/Capacitor debugging:
+  - initializeAuth with inMemoryPersistence avoids browser persistence issues in WKWebView
+  - forceLongPolling helps if RTDB transport is hanging in iOS WebView
+*/
+if (isNative && platform === "ios") {
+  forceLongPolling();
+  // If long polling still fails, comment that out and test:
+  // forceWebSockets();
+}
+
+export const auth = initializeAuth(app, {
+  persistence: inMemoryPersistence,
+});
+
 export const db = getDatabase(app);
-export const auth = getAuth(app);
 
 console.log("✅ Firebase projectId:", firebaseConfig.projectId);
 console.log("✅ Firebase databaseURL:", firebaseConfig.databaseURL);
-console.log("projectId", firebaseConfig.projectId);
-console.log("dbURL", firebaseConfig.databaseURL);
+console.log("✅ API key present:", !!firebaseConfig.apiKey);
 console.log("✅ RTDB host:", db?._repo?.repoInfo?.host);
-
-onAuthStateChanged(auth, (u) => {
-  console.log("auth uid", u?.uid ?? null);
-});
+console.log("Firebase authDomain:", firebaseConfig.authDomain);
+console.log("App origin:", window.location.origin);
+console.log("Full href:", window.location.href);
+console.log("Is native platform:", isNative);
+console.log("Platform:", platform);
