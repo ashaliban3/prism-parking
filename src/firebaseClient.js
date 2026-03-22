@@ -2,13 +2,19 @@ import { Capacitor } from "@capacitor/core";
 import { initializeApp, getApps } from "firebase/app";
 import {
   initializeAuth,
+  getAuth,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
   inMemoryPersistence,
+  GoogleAuthProvider,
+  OAuthProvider,
 } from "firebase/auth";
 import {
   getDatabase,
   forceLongPolling,
   // forceWebSockets,
 } from "firebase/database";
+
 
 const firebaseConfig = {
   apiKey:
@@ -48,11 +54,36 @@ if (isNative && platform === "ios") {
   // forceWebSockets();
 }
 
-export const auth = initializeAuth(app, {
-  persistence: inMemoryPersistence,
-});
+// export const auth = initializeAuth(app, {
+//   persistence: inMemoryPersistence,
+// });
+
+export const auth = (() => {
+  try {
+    if (isNative && platform === "ios") {
+      return initializeAuth(app, {
+        persistence: inMemoryPersistence,
+      });
+    }
+
+    return initializeAuth(app, {
+      persistence: browserLocalPersistence,
+      popupRedirectResolver: browserPopupRedirectResolver,
+    });
+  } catch (err) {
+    return getAuth(app);
+  }
+})();
 
 export const db = getDatabase(app);
+
+export const googleProvider = new GoogleAuthProvider();
+
+export const microsoftProvider = new OAuthProvider("microsoft.com");
+microsoftProvider.setCustomParameters({
+  prompt: "select_account",
+  tenant: "70de1992-07c6-480f-a318-a1afcba03983",
+});
 
 console.log("✅ Firebase projectId:", firebaseConfig.projectId);
 console.log("✅ Firebase databaseURL:", firebaseConfig.databaseURL);

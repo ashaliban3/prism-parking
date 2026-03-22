@@ -1,7 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { Capacitor } from "@capacitor/core";
-import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+//import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { ref, get } from "firebase/database";
 import App from "./App";
 import "./index.css";
@@ -36,21 +37,33 @@ onAuthStateChanged(auth, async (user) => {
   console.log("uid:", user?.uid ?? null);
   console.log("isAnonymous:", user?.isAnonymous ?? null);
 
+onAuthStateChanged(auth, (user) => {
+  console.log("AUTH STATE CHANGED");
+  console.log("uid:", user?.uid ?? null);
+  console.log("isAnonymous:", user?.isAnonymous ?? null);
+
   if (!user) {
-    console.log("⚠️ No user yet, attempting anonymous sign-in...");
-    try {
-      const cred = await withTimeout(
-        signInAnonymously(auth),
-        "signInAnonymously(auth)",
-        10000
-      );
-      console.log("✅ Signed in anonymously:", cred.user.uid);
-    } catch (e) {
-      console.error("❌ Anonymous sign-in failed:", e);
-    }
+    console.log("🚪 No authenticated user");
   } else {
     console.log("🔐 Existing auth uid:", user.uid);
   }
+});
+
+  // if (!user) {
+  //   console.log("⚠️ No user yet, attempting anonymous sign-in...");
+  //   try {
+  //     const cred = await withTimeout(
+  //       signInAnonymously(auth),
+  //       "signInAnonymously(auth)",
+  //       10000
+  //     );
+  //     console.log("✅ Signed in anonymously:", cred.user.uid);
+  //   } catch (e) {
+  //     console.error("❌ Anonymous sign-in failed:", e);
+  //   }
+  // } else {
+  //   console.log("🔐 Existing auth uid:", user.uid);
+  // }
 });
 
 setTimeout(() => {
