@@ -1,5 +1,4 @@
 
-
 // import React from "react";
 // import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -10,12 +9,7 @@
 
 // import Navbar from "./components/Navbar";
 // import Footer from "./components/Footer";
-
 // import ProtectedApp from "./components/ProtectedApp";
-
-// export default function App() {
-//   return <ProtectedApp />;
-// }
 
 // export default function App() {
 //   return (
@@ -26,7 +20,7 @@
 //         <main className="flex-grow pt-20 pb-8 max-w-6xl mx-auto px-4 w-full">
 //           <Routes>
 //             <Route path="/" element={<Home />} />
-//             <Route path="/map" element={<Map />} />
+//             <Route path="/map" element={<ProtectedApp><Map /></ProtectedApp>} />
 //             <Route path="/about" element={<About />} />
 //             <Route path="/contact" element={<Contact />} />
 //           </Routes>
@@ -37,35 +31,43 @@
 //     </Router>
 //   );
 // }
-
-import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-
+import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Map from "./pages/Map";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import ProtectedApp from "./components/ProtectedApp";
+import AdminLog from "./pages/AdminLog";
+import AdminRoute from "./components/AdminRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Navbar />
+      <Navbar />
 
-        <main className="flex-grow pt-20 pb-8 max-w-6xl mx-auto px-4 w-full">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/map" element={<ProtectedApp><Map /></ProtectedApp>} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-          </Routes>
-        </main>
-
-        <Footer />
+      <div className="pt-24">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route
+            path="/map"
+            element={
+              <ProtectedRoute>
+                <Map />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminLog />
+              </AdminRoute>
+            }
+          />
+        </Routes>
       </div>
     </Router>
   );

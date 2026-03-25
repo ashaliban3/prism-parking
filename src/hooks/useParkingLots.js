@@ -88,12 +88,13 @@
 
 //   return { lots, loading, error };
 // }
-import { useEffect, useState } from "react";
-import { ref, onValue } from "firebase/database";
+import { useEffect, useState, useCallback } from "react";
+import { ref, onValue, off } from "firebase/database";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, auth } from "../firebaseClient";
 import lotMeta from "../data/lotMeta";
 
+// safer timestamp parsing
 function parseLastUpdate(lastUpdate) {
   if (!lastUpdate) return null;
   const t = Date.parse(lastUpdate);
@@ -106,108 +107,107 @@ export default function useParkingLots() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
+  const [userReady, setUserReady] = useState(false);
+
+  // 🔑 AUTH LISTENER (separate responsibility)
   useEffect(() => {
-    let unsubscribeLots = null;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      console.log("🔥 useParkingLots auth changed:", user?.uid ?? null);
-
-      if (unsubscribeLots) {
-        unsubscribeLots();
-        unsubscribeLots = null;
-      }
-
-      setLots([]);
-      setError("");
-
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      const lotsRef = ref(db, "lots");
-
-      unsubscribeLots = onValue(
-        lotsRef,
-        (snap) => {
-          const data = snap.val();
-
-          if (!data) {
-            setLots([]);
-            setError("No live parking lot data is available right now.");
-            setLoading(false);
-            setRefreshing(false);
-            return;
-          }
-
-          const arr = Object.entries(data).map(([lotKey, lot]) => {
-            const meta = lotMeta[lotKey] || {};
-
-            const totalSpaces =
-              typeof lot.totalCapacity === "number" ? lot.totalCapacity : 0;
-
-            const currentOccupancy =
-              typeof lot.currentOccupancy === "number" ? lot.currentOccupancy : 0;
-
-            const safeOccupancy = Math.max(currentOccupancy, 0);
-            const available = Math.max(totalSpaces - safeOccupancy, 0);
-
-            return {
-              id: lotKey,
-              lotKey,
-              name: lot.name || lotKey,
-              totalSpaces,
-              currentOccupancy: safeOccupancy,
-              occupied: safeOccupancy,
-              available,
-              status: lot.status || null,
-              lastUpdated: parseLastUpdate(lot.lastUpdate),
-              lat: meta.lat ?? null,
-              lon: meta.lon ?? null,
-            };
-          });
-
-          console.log("✅ Parsed lots:", arr);
-
-          setLots(arr);
-          setError("");
-          setLoading(false);
-          setRefreshing(false);
-        },
-        (err) => {
-          console.error("RTDB /lots listener error:", err);
-
-          let message = "Unable to load live parking data.";
-
-          if (
-            err?.code === "PERMISSION_DENIED" ||
-            err?.message?.toLowerCase().includes("permission")
-          ) {
-            message =
-              "Access denied. Your account does not have permission to view parking data.";
-          } else if (err?.message) {
-            message = `Unable to load live parking data: ${err.message}`;
-          }
-
-          setLots([]);
-          setError(message);
-          setLoading(false);
-          setRefreshing(false);
-        }
-      );
+    const unsub = onAuthStateChanged(auth, (user) => {
+      console.log("🔐 Auth state:", user?.uid ?? null);
+      setUserReady(true); // even anonymous counts
     });
 
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeLots) unsubscribeLots();
-    };
+    return () => unsub();
   }, []);
 
-  const refreshLots = () => {
-    setRefreshing(true);
-  };
+  // 📡 DATA LISTENER (runs after auth resolves)
+  useEffect(() => {
+    if (!userReady) return;
 
-  return { lots, loading, refreshing, error, refreshLots };
+    const lotsRef = ref(db, "lots");
+
+    setLoading(true);
+
+    const unsubscribe = onValue(
+      lotsRef,
+      (snap) => {
+        const data = snap.val();
+
+        if (!data) {
+          setLots([]);
+          setError("No parking data available.");
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+
+        // 🔥 CRITICAL: always convert Firebase object → array
+        const parsedLots = Object.entries(data).map(([lotKey, lot]) => {
+          const meta = lotMeta[lotKey] || {};
+
+          const total =
+            typeof lot.totalCapacity === "number" ? lot.totalCapacity : 0;
+
+          const occupied =
+            typeof lot.currentOccupancy === "number"
+              ? Math.max(lot.currentOccupancy, 0)
+              : 0;
+
+          const available = Math.max(total - occupied, 0);
+
+          return {
+            id: lotKey,
+            name: lot.name || lotKey,
+            totalSpaces: total,
+            currentOccupancy: occupied,
+            available,
+            status: lot.status || null,
+            lastUpdated: parseLastUpdate(lot.lastUpdate),
+            lat: meta.lat ?? null,
+            lon: meta.lon ?? null,
+          };
+        });
+
+        console.log("✅ Lots parsed:", parsedLots);
+
+        setLots(parsedLots);
+        setError("");
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (err) => {
+        console.error("❌ Firebase error:", err);
+
+        let message = "Failed to load parking data.";
+
+        if (err?.code === "PERMISSION_DENIED") {
+          message = "Permission denied. Check Firebase rules.";
+        }
+
+        setLots([]);
+        setError(message);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
+
+    return () => off(lotsRef, "value", unsubscribe);
+  }, [userReady]);
+
+  // 🔄 REAL refresh (forces UI feedback)
+  const refreshLots = useCallback(() => {
+    setRefreshing(true);
+
+    // Firebase is real-time, so we just trigger UI state
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 800);
+  }, []);
+
+  return {
+    lots,          // ✅ always array
+    loading,
+    refreshing,
+    error,
+    refreshLots,
+  };
 }
