@@ -53,7 +53,8 @@ export default function AdminRoute({ children }) {
 
   const email = user.email?.toLowerCase() || "";
   const isApprovedAdminDomain =
-    email.endsWith("@unt.edu") || email.endsWith("@gmail.com");
+    email.endsWith("@my.unt.edu") || 
+    email.endsWith("@gmail.com") || email.endsWith("@unt.edu");
 
   const isAdmin = role === "admin" && isApprovedAdminDomain;
 
@@ -68,7 +69,7 @@ export default function AdminRoute({ children }) {
           <ul className="text-sm text-gray-600 text-left list-disc pl-5">
             <li>a signed-in account</li>
             <li>role set to <strong>admin</strong></li>
-            <li>a <strong>@unt.edu</strong> or <strong>@gmail.com</strong> email</li>
+            <li>a <strong>@my.unt.edu</strong> or <strong>@gmail.com</strong> email</li>
           </ul>
           <p className="text-gray-700 mt-4">
             Current email: <strong>{user.email || "none"}</strong>

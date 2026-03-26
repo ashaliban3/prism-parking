@@ -146,6 +146,7 @@ console.log("📱 platform:", Capacitor.getPlatform());
 console.log("🌐 origin:", window.location.origin);
 console.log("🌐 href:", window.location.href);
 
+
 onAuthStateChanged(auth, (user) => {
   console.log("AUTH STATE CHANGED");
   console.log("uid:", user?.uid ?? null);

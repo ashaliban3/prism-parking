@@ -254,10 +254,12 @@ export default function MapPage() {
             lot.distance !== Number.POSITIVE_INFINITY
               ? `${lot.distance.toFixed(2)} mi away`
               : "Distance unavailable";
-
+              
           const updatedText = Number.isFinite(lot.lastUpdated)
             ? new Date(lot.lastUpdated).toLocaleTimeString()
             : "Unknown";
+
+           
 
           return (
             <div

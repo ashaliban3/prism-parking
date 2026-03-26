@@ -143,7 +143,8 @@ export default function useParkingLots() {
         // 🔥 CRITICAL: always convert Firebase object → array
         const parsedLots = Object.entries(data).map(([lotKey, lot]) => {
           const meta = lotMeta[lotKey] || {};
-
+          console.log("lastUpdate raw:", lot.lastUpdate);
+          console.log("type:", typeof lot.lastUpdate);
           const total =
             typeof lot.totalCapacity === "number" ? lot.totalCapacity : 0;
 
@@ -168,6 +169,7 @@ export default function useParkingLots() {
         });
 
         console.log("✅ Lots parsed:", parsedLots);
+        
 
         setLots(parsedLots);
         setError("");

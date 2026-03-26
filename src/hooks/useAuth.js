@@ -158,7 +158,7 @@ function getEmail(firebaseUser) {
 }
 
 function isApprovedAdminDomain(email) {
-  return email.endsWith("@unt.edu") || email.endsWith("@gmail.com");
+  return email.endsWith("@unt.edu") || email.endsWith("@gmail.com") || email.endsWith("@my.unt.edu");
 }
 
 export default function useAuth() {
