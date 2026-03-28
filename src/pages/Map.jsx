@@ -18,12 +18,14 @@
 //   return 2 * R * Math.asin(Math.sqrt(s1 + s2));
 // }
 
-// export default function Map() {
+// export default function MapPage() {
 //   const { location, error: locationError } = useLocation();
 //   const {
 //     lots: rawLots,
 //     loading: lotsLoading,
+//     refreshing,
 //     error: lotsError,
+//     refreshLots,
 //   } = useParkingLots();
 
 //   const [filter, setFilter] = useState("all");
@@ -56,7 +58,16 @@
 
 //   return (
 //     <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
-//       <h1 className="text-3xl font-bold mb-4 text-emerald-700">Find Parking</h1>
+//       <div className="flex items-center justify-between mb-4 gap-4">
+//         <h1 className="text-3xl font-bold text-emerald-700">Find Parking</h1>
+
+//         <button
+//           onClick={refreshLots}
+//           className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+//         >
+//           {refreshing ? "Refreshing..." : "Refresh"}
+//         </button>
+//       </div>
 
 //       {location && (
 //         <p className="text-sm text-gray-600 mb-2">
@@ -67,7 +78,10 @@
 //       {locationError && (
 //         <p className="text-sm text-red-500 mb-2">{locationError}</p>
 //       )}
-//       {lotsError && <p className="text-sm text-red-500 mb-2">{lotsError}</p>}
+
+//       {lotsError && (
+//         <p className="text-sm text-red-500 mb-2">{lotsError}</p>
+//       )}
 
 //       {lotsLoading && (
 //         <p className="text-sm text-gray-600 mb-4">Loading live lot data...</p>
@@ -94,13 +108,16 @@
 //           const status = getStatus(lot.available, lot.totalSpaces);
 
 //           const distanceText =
-//             Number.isFinite(lot.distance) && lot.distance !== Number.POSITIVE_INFINITY
+//             Number.isFinite(lot.distance) &&
+//             lot.distance !== Number.POSITIVE_INFINITY
 //               ? `${lot.distance.toFixed(2)} mi away`
 //               : "Distance unavailable";
-
+              
 //           const updatedText = Number.isFinite(lot.lastUpdated)
 //             ? new Date(lot.lastUpdated).toLocaleTimeString()
 //             : "Unknown";
+
+           
 
 //           return (
 //             <div
@@ -110,7 +127,8 @@
 //               <h2 className="font-semibold text-lg text-gray-800">{lot.name}</h2>
 
 //               <p className="text-gray-500 text-sm">
-//                 {lot.currentOccupancy} / {lot.totalSpaces} spaces occupied • {distanceText}
+//                 {lot.currentOccupancy} / {lot.totalSpaces} spaces occupied •{" "}
+//                 {distanceText}
 //               </p>
 
 //               <p className="text-xs text-gray-400">Updated {updatedText}</p>
@@ -199,14 +217,46 @@ export default function MapPage() {
   }, [lotsWithDistance, filter]);
 
   return (
-    <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
+    <div className="relative p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
+      {refreshing && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-16 w-16 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
+            <p className="text-base font-semibold text-emerald-700">
+              Refreshing lot data...
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4 gap-4">
         <h1 className="text-3xl font-bold text-emerald-700">Find Parking</h1>
 
         <button
           onClick={refreshLots}
-          className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+          disabled={refreshing}
+          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
+          <svg
+            className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path
+              d="M21 12a9 9 0 1 1-2.64-6.36"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M21 3v6h-6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
@@ -225,7 +275,7 @@ export default function MapPage() {
         <p className="text-sm text-red-500 mb-2">{lotsError}</p>
       )}
 
-      {lotsLoading && (
+      {lotsLoading && !refreshing && (
         <p className="text-sm text-gray-600 mb-4">Loading live lot data...</p>
       )}
 
@@ -235,6 +285,7 @@ export default function MapPage() {
           className="border p-2 rounded"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
+          disabled={refreshing}
         >
           <option value="all">All Lots</option>
           <option value="near">Within 0.5 miles</option>
@@ -254,12 +305,10 @@ export default function MapPage() {
             lot.distance !== Number.POSITIVE_INFINITY
               ? `${lot.distance.toFixed(2)} mi away`
               : "Distance unavailable";
-              
+
           const updatedText = Number.isFinite(lot.lastUpdated)
             ? new Date(lot.lastUpdated).toLocaleTimeString()
             : "Unknown";
-
-           
 
           return (
             <div
@@ -288,8 +337,9 @@ export default function MapPage() {
               </div>
 
               <button
-                className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all"
+                className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={() => alert(`Reserved at ${lot.name}!`)}
+                disabled={refreshing}
               >
                 Reserve Spot
               </button>

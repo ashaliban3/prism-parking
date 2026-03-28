@@ -35,6 +35,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Map from "./pages/Map";
+import Help from "./pages/Help";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import AdminLog from "./pages/AdminLog";
@@ -59,6 +60,7 @@ export default function App() {
           />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/help" element={<Help />} />
           <Route
             path="/admin"
             element={

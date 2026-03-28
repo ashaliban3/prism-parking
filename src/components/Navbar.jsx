@@ -62,6 +62,7 @@ export default function Navbar() {
     { path: "/map", label: "Map" },
     { path: "/about", label: "About" },
     { path: "/contact", label: "Contact" },
+    { path: "/help", label: "Help" },
   ];
 
   if (isAdmin) {
