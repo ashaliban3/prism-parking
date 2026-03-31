@@ -1,4 +1,3 @@
-
 // import React, { useMemo, useState } from "react";
 // import { getStatus, statusColors } from "../utils/statusHelpers";
 // import useLocation from "../hooks/useLocation";
@@ -7,7 +6,7 @@
 
 // function haversineMiles(aLat, aLon, bLat, bLon) {
 //   const toRad = (x) => (x * Math.PI) / 180;
-//   const R = 3958.8;
+//    const R = 3958.8;
 //   const dLat = toRad(bLat - aLat);
 //   const dLon = toRad(bLon - aLon);
 
@@ -63,8 +62,29 @@
 
 //         <button
 //           onClick={refreshLots}
-//           className="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
+//           disabled={refreshing}
+//           className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
 //         >
+//           <svg
+//             className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
+//             viewBox="0 0 24 24"
+//             fill="none"
+//           >
+//             <path
+//               d="M21 12a9 9 0 1 1-2.64-6.36"
+//               stroke="currentColor"
+//               strokeWidth="2"
+//               strokeLinecap="round"
+//               strokeLinejoin="round"
+//             />
+//             <path
+//               d="M21 3v6h-6"
+//               stroke="currentColor"
+//               strokeWidth="2"
+//               strokeLinecap="round"
+//               strokeLinejoin="round"
+//             />
+//           </svg>
 //           {refreshing ? "Refreshing..." : "Refresh"}
 //         </button>
 //       </div>
@@ -83,7 +103,7 @@
 //         <p className="text-sm text-red-500 mb-2">{lotsError}</p>
 //       )}
 
-//       {lotsLoading && (
+//       {lotsLoading && !refreshing && (
 //         <p className="text-sm text-gray-600 mb-4">Loading live lot data...</p>
 //       )}
 
@@ -93,16 +113,30 @@
 //           className="border p-2 rounded"
 //           value={filter}
 //           onChange={(e) => setFilter(e.target.value)}
+//           disabled={refreshing}
 //         >
 //           <option value="all">All Lots</option>
 //           <option value="near">Within 0.5 miles</option>
 //         </select>
 //       </div>
 
-//       <div className="mb-10">
+//       {/* 🔥 FIXED MAP SECTION */}
+//       <div className="mb-10 relative">
+//         {refreshing && (
+//           <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+//             <div className="flex flex-col items-center gap-3">
+//               <div className="h-12 w-12 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
+//               <p className="text-sm font-medium text-emerald-700">
+//                 Refreshing...
+//               </p>
+//             </div>
+//           </div>
+//         )}
+
 //         <GoogleMapComponent lots={filteredLots} location={location} />
 //       </div>
 
+//       {/* LOT CARDS */}
 //       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 //         {filteredLots.map((lot) => {
 //           const status = getStatus(lot.available, lot.totalSpaces);
@@ -112,12 +146,10 @@
 //             lot.distance !== Number.POSITIVE_INFINITY
 //               ? `${lot.distance.toFixed(2)} mi away`
 //               : "Distance unavailable";
-              
+
 //           const updatedText = Number.isFinite(lot.lastUpdated)
 //             ? new Date(lot.lastUpdated).toLocaleTimeString()
 //             : "Unknown";
-
-           
 
 //           return (
 //             <div
@@ -145,12 +177,6 @@
 //                   : "Full"}
 //               </div>
 
-//               <button
-//                 className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all"
-//                 onClick={() => alert(`Reserved at ${lot.name}!`)}
-//               >
-//                 Reserve Spot
-//               </button>
 //             </div>
 //           );
 //         })}
@@ -217,18 +243,7 @@ export default function MapPage() {
   }, [lotsWithDistance, filter]);
 
   return (
-    <div className="relative p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
-      {refreshing && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/70 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-16 w-16 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
-            <p className="text-base font-semibold text-emerald-700">
-              Refreshing lot data...
-            </p>
-          </div>
-        </div>
-      )}
-
+    <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
       <div className="flex items-center justify-between mb-4 gap-4">
         <h1 className="text-3xl font-bold text-emerald-700">Find Parking</h1>
 
@@ -279,20 +294,18 @@ export default function MapPage() {
         <p className="text-sm text-gray-600 mb-4">Loading live lot data...</p>
       )}
 
-      <div className="flex items-center space-x-4 mb-6">
-        <label className="text-gray-700 font-medium">Filter:</label>
-        <select
-          className="border p-2 rounded"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          disabled={refreshing}
-        >
-          <option value="all">All Lots</option>
-          <option value="near">Within 0.5 miles</option>
-        </select>
-      </div>
+      <div className="mb-10 relative rounded-xl overflow-hidden">
+        {refreshing && (
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center bg-white/20">
+            <div className="flex flex-col items-center gap-3 rounded-xl bg-white/80 px-4 py-3 shadow">
+              <div className="h-12 w-12 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
+              <p className="text-sm font-medium text-emerald-700">
+                Refreshing map data...
+              </p>
+            </div>
+          </div>
+        )}
 
-      <div className="mb-10">
         <GoogleMapComponent lots={filteredLots} location={location} />
       </div>
 
@@ -335,14 +348,6 @@ export default function MapPage() {
                   ? "Almost full"
                   : "Full"}
               </div>
-
-              <button
-                className="block w-full mt-5 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                onClick={() => alert(`Reserved at ${lot.name}!`)}
-                disabled={refreshing}
-              >
-                Reserve Spot
-              </button>
             </div>
           );
         })}

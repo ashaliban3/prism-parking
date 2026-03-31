@@ -3,12 +3,12 @@
 // Keys MUST match your RTDB node names under /lots (LotA, LotB, etc.)
 export const lotMeta = {
     LotA: {
-      lat: 33.2075,
-      lon: -97.1521,
+      lat: 33.25324780616215,
+      lon: -97.15408743711893,
     },
     LotB: {
-      lat: 33.2101,
-      lon: -97.1532,
+      lat: 33.254149491888825,
+      lon: -97.15014458985698,
     },
   
     // Add these only if you create them in RTDB:
@@ -17,3 +17,4 @@ export const lotMeta = {
   };
   
   export default lotMeta;
+

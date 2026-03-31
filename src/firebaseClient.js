@@ -43,6 +43,12 @@ export const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfi
 const isNative = Capacitor.isNativePlatform();
 const platform = Capacitor.getPlatform();
 
+
+export async function getWebMessaging() {
+  const supported = await isSupported();
+  if (!supported) return null;
+  return getMessaging(app);
+}
 /*
   For iOS/Capacitor debugging:
   - initializeAuth with inMemoryPersistence avoids browser persistence issues in WKWebView
