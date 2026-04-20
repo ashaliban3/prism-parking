@@ -126,3 +126,5 @@ console.log("App origin:", window.location.origin);
 console.log("Full href:", window.location.href);
 console.log("Is native platform:", isNative);
 console.log("Platform:", platform);
+
+console.log("VAPID:", import.meta.env.VITE_FIREBASE_VAPID_KEY);
