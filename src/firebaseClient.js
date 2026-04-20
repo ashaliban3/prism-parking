@@ -92,13 +92,13 @@ window.testLotUpdate = async () => {
   try {
     console.log("setting LotA to 0...");
     await update(ref(db, "lots/LotA"), {
-      currentoccupancy: 0,
+      currentOccupancy: 0,
       name: "Lot A",
     });
 
-    console.log("setting LotA to 25...");
+    console.log("setting LotA to 87...");
     await update(ref(db, "lots/LotA"), {
-      currentoccupancy: 87,
+      currentOccupancy: 87,
       name: "Lot A",
     });
 
