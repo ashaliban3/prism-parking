@@ -91,13 +91,13 @@ export const db = getDatabase(app);
 window.testLotUpdate = async () => {
   try {
     console.log("setting LotA to 0...");
-    await update(ref(db, "parkingLots/LotA"), {
+    await update(ref(db, "lots/LotA"), {
       available: 0,
       name: "Lot A",
     });
 
     console.log("setting LotA to 25...");
-    await update(ref(db, "parkingLots/LotA"), {
+    await update(ref(db, "lots/LotA"), {
       available: 25,
       name: "Lot A",
     });
