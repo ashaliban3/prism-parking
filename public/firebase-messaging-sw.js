@@ -28,12 +28,14 @@ measurementId: "G-NF3QTB95DN",
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+  console.log("[SW] background payload:", payload);
+
   self.registration.showNotification(
-    payload.notification.title,
+    payload.notification?.title || "PRISM Parking",
     {
-      body: payload.notification.body,
+      body: payload.notification?.body || "Background message received",
       icon: "/icons/icon-192.png",
-      data: payload.data,
+      data: payload.data || {},
     }
   );
 });
