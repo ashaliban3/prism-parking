@@ -1,5 +1,8 @@
 import { Capacitor } from "@capacitor/core";
 import { initializeApp, getApps } from "firebase/app";
+import { getMessaging, isSupported } from "firebase/messaging";
+import { getFunctions } from "firebase/functions";
+
 import {
   initializeAuth,
   getAuth,
@@ -12,6 +15,8 @@ import {
 import {
   getDatabase,
   forceLongPolling,
+  ref,
+  update,
   // forceWebSockets,
 } from "firebase/database";
 
@@ -83,6 +88,27 @@ export const auth = (() => {
 
 export const db = getDatabase(app);
 
+window.testLotUpdate = async () => {
+  try {
+    console.log("setting LotA to 0...");
+    await update(ref(db, "parkingLots/LotA"), {
+      available: 0,
+      name: "Lot A",
+    });
+
+    console.log("setting LotA to 25...");
+    await update(ref(db, "parkingLots/LotA"), {
+      available: 25,
+      name: "Lot A",
+    });
+
+    console.log("✅ parking lot updated twice");
+  } catch (err) {
+    console.error("❌ testLotUpdate failed:", err);
+  }
+};
+
+export const functions = getFunctions(app);
 export const googleProvider = new GoogleAuthProvider();
 
 export const microsoftProvider = new OAuthProvider("microsoft.com");
