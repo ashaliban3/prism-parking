@@ -28,24 +28,44 @@ measurementId: "G-NF3QTB95DN",
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("[SW] background payload:", payload);
+  console.log("[firebase-messaging-sw.js] Background message:", payload);
 
-  self.registration.showNotification(
-    payload.notification?.title || "PRISM Parking",
-    {
-      body: payload.notification?.body || "Background message received",
-      icon: "/icons/icon-192.png",
-      data: payload.data || {},
-    }
-  );
+  const title =
+    payload.notification?.title ||
+    payload.data?.title ||
+    "PRISM Parking";
+
+  const options = {
+    body:
+      payload.notification?.body ||
+      payload.data?.body ||
+      "Lot update",
+    icon: "/pwa-192x192.png",
+    data: {
+      link: "/map",
+      ...payload.data,
+    },
+  };
+
+  self.registration.showNotification(title, options);
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const url = event.notification.data?.clickPath || "/map";
+  const urlToOpen = event.notification.data?.link || "/map";
 
   event.waitUntil(
-    clients.openWindow(url)
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ("focus" in client) {
+          client.navigate(urlToOpen);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
   );
 });
