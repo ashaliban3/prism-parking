@@ -27,7 +27,7 @@ measurementId: "G-NF3QTB95DN",
 });
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
+messaging.onBackgroundMessage(async (payload) => {
   console.log("[firebase-messaging-sw.js] Background message:", payload);
 
   const title =
@@ -41,13 +41,18 @@ messaging.onBackgroundMessage((payload) => {
       payload.data?.body ||
       "Lot update",
     icon: "/pwa-192x192.png",
+    badge: "/pwa-192x192.png",
     data: {
-      link: "/map",
+      link: payload?.data?.link || "/map",
       ...payload.data,
     },
+    tag: payload?.data?.lotId
+      ? `lot-${payload.data.lotId}`
+      : "prism-parking",
+    renotify: true,
   };
 
-  self.registration.showNotification(title, options);
+  await self.registration.showNotification(title, options);
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -63,6 +68,7 @@ self.addEventListener("notificationclick", (event) => {
           return client.focus();
         }
       }
+
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }

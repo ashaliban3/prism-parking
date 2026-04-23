@@ -215,7 +215,7 @@ import useLocation from "../hooks/useLocation";
 import useParkingLots from "../hooks/useParkingLots";
 import GoogleMapComponent from "../components/GoogleMap";
 import { getMessaging, onMessage } from "firebase/messaging";
-import { app } from "../firebaseClient";
+import { app, auth } from "../firebaseClient";
 
 function haversineMiles(aLat, aLon, bLat, bLon) {
   const toRad = (x) => (x * Math.PI) / 180;
@@ -231,15 +231,91 @@ function haversineMiles(aLat, aLon, bLat, bLon) {
 }
 
 
+const SUBSCRIBE_URL =
+  "https://us-central1-prism-dc193.cloudfunctions.net/subscribeToLotTopic";
+
+const UNSUBSCRIBE_URL =
+  "https://us-central1-prism-dc193.cloudfunctions.net/unsubscribeFromLotTopic";
+
+async function subscribeToLot(lotID) {
+  const userId = auth.currentUser?.uid;
+
+  if (!userId) {
+    throw new Error("No signed-in user found.");
+  }
+
+  console.log("Subscribing user to topic", { userId, lotID });
+
+  const res = await fetch(SUBSCRIBE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ userId, lotID }),
+  });
+
+  const text = await res.text();
+  console.log("subscribe response:", res.status, text);
+
+  if (!res.ok) {
+    throw new Error(text || "Subscribe failed");
+  }
+
+  return text;
+}
+
+async function unsubscribeFromLot(lotID) {
+  const userId = auth.currentUser?.uid;
+
+  if (!userId) {
+    throw new Error("No signed-in user found.");
+  }
+
+  console.log("Unsubscribing user from topic", { userId, lotID });
+
+  const res = await fetch(UNSUBSCRIBE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ userId, lotID }),
+  });
+
+  const text = await res.text();
+  console.log("unsubscribe response:", res.status, text);
+
+  if (!res.ok) {
+    throw new Error(text || "Unsubscribe failed");
+  }
+
+  return text;
+}
 
 async function handleEnableNotifications() {
   try {
     await registerForPushNotifications();
+
     localStorage.setItem("parking_notifications_enabled", "true");
-    alert("Notifications enabled");
+
+    // temporary debug: subscribe to LotA
+    await subscribeToLot("LotA");
+
+    alert("Notifications enabled and subscribed to LotA");
   } catch (err) {
     console.error(err);
     alert(`Failed to enable notifications: ${err.message}`);
+  }
+}
+async function handleDisableNotifications() {
+  try {
+    await unsubscribeFromLot("LotA");
+
+    localStorage.setItem("parking_notifications_enabled", "false");
+
+    alert("Notifications disabled and unsubscribed from LotA");
+  } catch (err) {
+    console.error(err);
+    alert(`Failed to disable notifications: ${err.message}`);
   }
 }
 
@@ -432,7 +508,12 @@ export default function MapPage() {
         >
           Enable Notifications
         </button>
-
+        <button
+          onClick={handleDisableNotifications}
+          className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+        >
+          Disable Notifications
+        </button>
         <select
           className="border p-2 rounded"
           value={filter}
