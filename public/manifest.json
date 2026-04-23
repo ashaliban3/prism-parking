@@ -3,13 +3,13 @@
   "name": "Prism Parking",
   "icons": [
     {
-      "src": "logo192.png",
-      "sizes": "192x192",
+      "src": "prismLogo.png",
+      "sizes": "1024x1024",
       "type": "image/png"
     },
     {
-      "src": "logo512.png",
-      "sizes": "512x512",
+      "src": "prismLogo.png",
+      "sizes": "1024x1024",
       "type": "image/png"
     }
   ],

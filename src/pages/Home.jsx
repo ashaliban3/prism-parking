@@ -36,7 +36,7 @@ export default function Home() {
             and reserve in seconds.
           </p>
 
-          <div className="flex justify-center md:justify-start space-x-4 pt-4">
+          <div className="flex justify-center md:justify-start space-x-4">
             <a
               href="/map"
               className="bg-emerald-600 hover:bg-emerald-700 transition-all text-white px-6 py-3 rounded-lg shadow-lg"

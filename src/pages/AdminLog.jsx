@@ -84,7 +84,7 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-6 py-12">
+    <div className="min-h-screen bg-gray-50 px-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-10">
           <h1 className="text-4xl font-bold text-slate-900">Admin Dashboard</h1>

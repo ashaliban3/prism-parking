@@ -47,7 +47,7 @@ export default function App() {
     <Router>
       <Navbar />
 
-      <div className="pt-24">
+      <div className="pt-2">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route

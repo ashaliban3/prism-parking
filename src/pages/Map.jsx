@@ -468,7 +468,7 @@ export default function MapPage() {
   }, [lotsWithDistance, filter]);
 
   return (
-    <div className="p-6 mt-16 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
+    <div className="p-6 bg-gradient-to-b from-emerald-50 to-white min-h-screen">
       <div className="flex items-center justify-between mb-4 gap-4">
         <h1 className="text-3xl font-bold text-emerald-700">Find Parking</h1>
 

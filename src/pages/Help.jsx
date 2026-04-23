@@ -44,7 +44,7 @@ export default function Help() {
   ];
 
   return (
-    <div className="min-h-screen bg-emerald-50 px-6 py-12">
+    <div className="min-h-screen bg-emerald-50 px-6s">
       <div className="mx-auto max-w-5xl">
         <div className="mb-10 text-center">
           <div className="mb-4 flex justify-center text-emerald-700">
