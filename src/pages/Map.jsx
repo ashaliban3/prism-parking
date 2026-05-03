@@ -367,77 +367,77 @@ export default function MapPage() {
       if (unsubscribe) unsubscribe();
     };
   }, []);
-  useEffect(() => {
-    const enabled =
-      localStorage.getItem("parking_notifications_enabled") === "true";
+  // useEffect(() => {
+  //   const enabled =
+  //     localStorage.getItem("parking_notifications_enabled") === "true";
   
-    if (!enabled) return;
-    if (Notification.permission !== "granted") return;
-    if (!rawLots?.length) return;
+  //   if (!enabled) return;
+  //   if (Notification.permission !== "granted") return;
+  //   if (!rawLots?.length) return;
   
-    const prevLots = previousLotsRef.current;
+  //   const prevLots = previousLotsRef.current;
   
-    if (!initializedRef.current) {
-      const snapshot = {};
+  //   if (!initializedRef.current) {
+  //     const snapshot = {};
   
-      for (const lot of rawLots) {
-        const lotIdentifier = lot.id || lot.lotKey || lot.name;
+  //     for (const lot of rawLots) {
+  //       const lotIdentifier = lot.id || lot.lotKey || lot.name;
   
-        snapshot[lotIdentifier] = {
-          currentOccupancy: Number(lot.currentOccupancy || 0),
-          totalSpaces: Number(lot.totalSpaces || 0),
-        };
-      }
+  //       snapshot[lotIdentifier] = {
+  //         currentOccupancy: Number(lot.currentOccupancy || 0),
+  //         totalSpaces: Number(lot.totalSpaces || 0),
+  //       };
+  //     }
   
-      previousLotsRef.current = snapshot;
-      initializedRef.current = true;
-      console.log("Initialized lot snapshot:", snapshot);
-      return;
-    }
+  //     previousLotsRef.current = snapshot;
+  //     initializedRef.current = true;
+  //     console.log("Initialized lot snapshot:", snapshot);
+  //     return;
+  //   }
   
-    for (const lot of rawLots) {
-      const lotIdentifier = lot.id || lot.lotKey || lot.name;
-      const currentOccupancy = Number(lot.currentOccupancy || 0);
-      const totalSpaces = Number(lot.totalSpaces || 0);
-      const prev = prevLots[lotIdentifier];
+  //   for (const lot of rawLots) {
+  //     const lotIdentifier = lot.id || lot.lotKey || lot.name;
+  //     const currentOccupancy = Number(lot.currentOccupancy || 0);
+  //     const totalSpaces = Number(lot.totalSpaces || 0);
+  //     const prev = prevLots[lotIdentifier];
   
-      if (!prev) {
-        prevLots[lotIdentifier] = {
-          currentOccupancy,
-          totalSpaces,
-        };
-        continue;
-      }
+  //     if (!prev) {
+  //       prevLots[lotIdentifier] = {
+  //         currentOccupancy,
+  //         totalSpaces,
+  //       };
+  //       continue;
+  //     }
   
-      const wasFull =
-        Number(prev.currentOccupancy || 0) >= Number(prev.totalSpaces || 0);
-      const isFull = currentOccupancy >= totalSpaces;
+  //     const wasFull =
+  //       Number(prev.currentOccupancy || 0) >= Number(prev.totalSpaces || 0);
+  //     const isFull = currentOccupancy >= totalSpaces;
   
-      console.log("Lot transition check:", {
-        lotIdentifier,
-        prev,
-        currentOccupancy,
-        totalSpaces,
-        wasFull,
-        isFull,
-      });
+  //     console.log("Lot transition check:", {
+  //       lotIdentifier,
+  //       prev,
+  //       currentOccupancy,
+  //       totalSpaces,
+  //       wasFull,
+  //       isFull,
+  //     });
   
-      if (!wasFull && isFull) {
-        new Notification("PRISM Parking", {
-          body: `${lot.name || lotIdentifier} is now full`,
-          icon: "/pwa-192x192.png",
-        });
-        console.log("Notification fired for", lotIdentifier);
-      }
+  //     if (!wasFull && isFull) {
+  //       new Notification("PRISM Parking", {
+  //         body: `${lot.name || lotIdentifier} is now full`,
+  //         icon: "/pwa-192x192.png",
+  //       });
+  //       console.log("Notification fired for", lotIdentifier);
+  //     }
   
-      prevLots[lotIdentifier] = {
-        currentOccupancy,
-        totalSpaces,
-      };
-    }
+  //     prevLots[lotIdentifier] = {
+  //       currentOccupancy,
+  //       totalSpaces,
+  //     };
+  //   }
   
-    previousLotsRef.current = { ...prevLots };
-  }, [rawLots]);
+  //   previousLotsRef.current = { ...prevLots };
+  // }, [rawLots]);
 
   console.log("rawLots notification effect running", rawLots);
   
@@ -578,7 +578,7 @@ export default function MapPage() {
 
           return (
             <div
-              kkey={lot.id || lot.lotKey || lot.name}
+              key={lot.id || lot.lotKey || lot.name}
               className="bg-white p-5 rounded-xl shadow border border-gray-100 hover:shadow-md transition"
             >
               <h2 className="font-semibold text-lg text-gray-800">{lot.name}</h2>
